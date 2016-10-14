@@ -52,6 +52,11 @@ static int handle_read(request* reqP);
 // error code:
 // -1: client connection error
 
+
+#define SVR_IP "127.0.0.1"
+#define SVR_PORT 8888
+#define BUF_SIZE 1024
+
 int main(int argc, char** argv) {
     int i, ret;
 
@@ -106,7 +111,7 @@ int main(int argc, char** argv) {
 
         file_fd = -1;
         
-
+// read_server
 #ifdef READ_SERVER
         ret = handle_read(&requestP[conn_fd]);
             if (ret < 0) {
@@ -133,7 +138,7 @@ int main(int argc, char** argv) {
         }
         fprintf(stderr, "Done reading file [%s]\n", requestP[conn_fd].filename);
 #endif
-
+// write_server
 #ifndef READ_SERVER
         do {
             ret = handle_read(&requestP[conn_fd]);
