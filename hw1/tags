@@ -1,0 +1,34 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+BUF_SIZE	server.c	/^#define BUF_SIZE /;"	d	file:
+ERR_EXIT	server.c	/^#define ERR_EXIT(/;"	d	file:
+SVR_IP	server.c	/^#define SVR_IP /;"	d	file:
+SVR_PORT	server.c	/^#define SVR_PORT /;"	d	file:
+accept_header	server.c	/^const char* accept_header = "ACCEPT\\n";$/;"	v
+buf	server.c	/^    char buf[512];  \/\/ data sent by\/to client$/;"	m	struct:__anon2	file:
+buf_len	server.c	/^    size_t buf_len;  \/\/ bytes used by buf$/;"	m	struct:__anon2	file:
+conn_fd	server.c	/^    int conn_fd;  \/\/ fd to talk with client$/;"	m	struct:__anon2	file:
+e_malloc	server.c	/^static void* e_malloc(size_t size) {$/;"	f	file:
+end_server	test.sh	/^function end_server {$/;"	f
+filename	server.c	/^    char* filename;  \/\/ filename set in header, end with '\\0'.$/;"	m	struct:__anon2	file:
+free_request	server.c	/^static void free_request(request* reqP) {$/;"	f	file:
+handle_read	server.c	/^static int handle_read(request* reqP) {$/;"	f	file:
+header_done	server.c	/^    int header_done;  \/\/ used by handle_read to know if the header is read or not.$/;"	m	struct:__anon2	file:
+host	server.c	/^    char host[512];  \/\/ client's host$/;"	m	struct:__anon2	file:
+hostname	server.c	/^    char hostname[512];  \/\/ server's hostname$/;"	m	struct:__anon1	file:
+init_request	server.c	/^static void init_request(request* reqP) {$/;"	f	file:
+init_server	server.c	/^static void init_server(unsigned short port) {$/;"	f	file:
+listen_fd	server.c	/^    int listen_fd;  \/\/ fd to wait for a new connection$/;"	m	struct:__anon1	file:
+main	server.c	/^int main(int argc, char** argv) {$/;"	f
+maxfd	server.c	/^int maxfd;  \/\/ size of open file descriptor table, size of request list$/;"	v
+port	server.c	/^    unsigned short port;  \/\/ port to listen$/;"	m	struct:__anon1	file:
+reject_header	server.c	/^const char* reject_header = "REJECT\\n";$/;"	v
+request	server.c	/^} request;$/;"	t	typeref:struct:__anon2	file:
+requestP	server.c	/^request* requestP = NULL;  \/\/ point to a list of requests$/;"	v
+server	server.c	/^} server;$/;"	t	typeref:struct:__anon1	file:
+start_server	test.sh	/^function start_server {$/;"	f
+svr	server.c	/^server svr;  \/\/ server$/;"	v
