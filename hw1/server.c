@@ -88,19 +88,23 @@ int main(int argc, char** argv) {
    fprintf(stderr, "\nstarting on %.80s, port %d, fd %d, maxconn %d...\n", svr.hostname, svr.port, svr.listen_fd, maxfd);
 
    fd_set master, read_fds;
-   int myfds[maxfd];
-
    FD_ZERO(&master);
    FD_SET(svr.listen_fd, &master);
+   int mymax = svr.listen_fd;
 
    while (1) {
       // TODO: Add IO multiplexing
       read_fds = master;
-      if (select (svr.listen_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
+      int result = select (mymax + 1, &read_fds, NULL, NULL, NULL);
+      if(result < 0) {
          perror ("select");
          exit (EXIT_FAILURE);
+      } else if (result == 0) {
+         perror ("timeout");
+         exit (EXIT_FAILURE);
       }
-      for(int i = 0; i < svr.listen_fd + 1; i ++) {
+
+      for(int i = 0; i < FD_SETSIZE; i ++) {
          if(FD_ISSET(i, &read_fds)) {
             if(i == svr.listen_fd) {
                // Check new connection
@@ -113,12 +117,16 @@ int main(int argc, char** argv) {
                      continue;
                   }
                   ERR_EXIT("accept")
+               } else {
+                  FD_SET(conn_fd, &master);
+                  requestP[conn_fd].conn_fd = conn_fd;
+                  strcpy(requestP[conn_fd].host, inet_ntoa(cliaddr.sin_addr));
+                  fprintf(stderr, "getting a new request... fd %d from %s\n", conn_fd, requestP[conn_fd].host);
+                  if(conn_fd > mymax)
+                     mymax = conn_fd;
+                  
+                  file_fd = -1;
                }
-               FD_SET(conn_fd, &read_fds);
-               requestP[conn_fd].conn_fd = conn_fd;
-               strcpy(requestP[conn_fd].host, inet_ntoa(cliaddr.sin_addr));
-               fprintf(stderr, "getting a new request... fd %d from %s\n", conn_fd, requestP[conn_fd].host);
-               file_fd = -1;
             } else {
 #ifdef READ_SERVER //read_server
 
