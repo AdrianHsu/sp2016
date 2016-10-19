@@ -139,22 +139,24 @@ int main(int argc, char** argv) {
         fprintf(stderr, "getting a new request... fd %d from %s\n", conn_fd, requestP[conn_fd].host);
 
         file_fd = -1;
+        requestP[conn_fd].file_fd = file_fd;
 
       } else {
 #ifdef READ_SERVER
-        ret = handle_read(&requestP[conn_fd]);
+        ret = handle_read(&requestP[i]);
         if (ret < 0) {
           //fprintf(stderr, "bad request from %s\n", requestP[fd].host);
           continue;
         }
         // requestP[fd]->filename is guaranteed to be successfully set.
-        if (file_fd == -1) {
+        if (requestP[i].file_fd == -1) {
           // open the file here.
           fprintf(stderr, "Opening file [%s]\n", requestP[i].filename);
           // TODO: Add lock
           // TODO: check if the request should be rejected.
           write(requestP[i].conn_fd, accept_header, sizeof(accept_header));
           file_fd = open(requestP[i].filename, O_RDONLY, 0);
+          requestP[i].file_fd = file_fd;
         }
         if (ret == 0) {
           continue;
