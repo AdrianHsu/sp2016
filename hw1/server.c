@@ -106,24 +106,24 @@ int main(int argc, char** argv) {
   while (1) {
     // TODO: Add IO multiplexing
     // Check new connection
-    memcpy(&read_fds, &master, sizeof(master));
-    memcpy(&write_fds, &master, sizeof(master));
+    memcpy(&read_fds, &master, sizeof(master)); 
+    memcpy(&write_fds, &master, sizeof(master)); //they are the same fds
     int result = select(maxfd + 1, &read_fds, NULL, NULL, &timeout);//read_fds, write_fds repeat
-    if(result <= 0)
-      continue;
-    int _result = 0;
-    for(; _result < result; _result++) {
-      int i = 0;
+    if(result <= 0) // no available fds
+      continue; // return while at once
+    
+    // for every fd which is waiting for handling
+    for(int _result = 0; _result < result; _result++) {
+      int i = 0; // current id
       while(!FD_ISSET(i, &read_fds) && i < maxfd)// same as write_fds 
         i++;
       if(i == maxfd)
         break;
-    //fprintf(stderr, "%d====\n", result);
-      
-
+      // new fd appears, listened by svr
       if(i == svr.listen_fd) {
 
         clilen = sizeof(cliaddr);
+        // accept this new fd, build up connection  
         conn_fd = accept(svr.listen_fd, (struct sockaddr*)&cliaddr, (socklen_t*)&clilen);
         if (conn_fd < 0) {
           if (errno == EINTR || errno == EAGAIN) continue;  // try again
@@ -133,22 +133,24 @@ int main(int argc, char** argv) {
           }
           ERR_EXIT("accept")
         }
-        requestP[conn_fd].conn_fd = conn_fd;
+        requestP[conn_fd].conn_fd = conn_fd; // this connection's fd, denotes client address
+        file_fd = -1;
+        requestP[conn_fd].file_fd = file_fd; // r/w file
+        
         FD_SET(conn_fd, &master);
         strcpy(requestP[conn_fd].host, inet_ntoa(cliaddr.sin_addr));
         fprintf(stderr, "getting a new request... fd %d from %s\n", conn_fd, requestP[conn_fd].host);
 
-        file_fd = -1;
-        requestP[conn_fd].file_fd = file_fd;
 
       } else {
 #ifdef READ_SERVER
         ret = handle_read(&requestP[i]);
         if (ret < 0) {
-          //fprintf(stderr, "bad request from %s\n", requestP[fd].host);
+          //fprintf(stderr, "bad request from %s\n", requestP[i].host);
           continue;
         }
-        // requestP[fd]->filename is guaranteed to be successfully set.
+        
+        // requestP[i]->filename is guaranteed to be successfully set.
         if (requestP[i].file_fd == -1) {
           // open the file here.
           fprintf(stderr, "Opening file [%s]\n", requestP[i].filename);
@@ -169,8 +171,9 @@ int main(int argc, char** argv) {
           } else if (ret == 0) break;
           write(requestP[i].conn_fd, buf, ret);
         }
-        FD_CLR(i, &master);
+        FD_CLR(i, &master); //delete this already-read file from master & read_fds
         fprintf(stderr, "Done reading file [%s]\n", requestP[i].filename);
+        
         if (file_fd >= 0) close(file_fd);
         close(requestP[i].conn_fd);
         free_request(&requestP[i]);
