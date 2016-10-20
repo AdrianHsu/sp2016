@@ -103,24 +103,22 @@ int main(int argc, char** argv) {
   timeout.tv_sec = 0;
   timeout.tv_usec = 1;
 
-//#ifdef READ_SERVER
-//  struct flock rlock;
-//  memset (&rlock, 0, sizeof(rlock));
-//  rlock.l_type = F_RDLCK;
-//  rlock.l_whence = SEEK_SET;  
-//  rlock.l_start = 0;  
-//  rlock.l_len = 0;  
-//  rlock.l_pid -1; //getpid  
-//#endif
-//#ifndef READ_SERVER
-//  struct flock wlock;
-//  memset (&wlock, 0, sizeof(wlock));
-//  wlock.l_type = F_WRLCK;
-//  wlock.l_whence = SEEK_SET;  
-//  wlock.l_start = 0;  
-//  wlock.l_len = 0;  
-//  wlock.l_pid -2;
-//#endif
+#ifdef READ_SERVER
+  struct flock rlock;
+  rlock.l_type = F_RDLCK;
+  rlock.l_whence = SEEK_SET;  
+  rlock.l_start = 0;  
+  rlock.l_len = 0;  
+  //rlock.l_pid -1; //getpid  
+#endif
+#ifndef READ_SERVER
+  struct flock wlock;
+  wlock.l_type = F_WRLCK;
+  wlock.l_whence = SEEK_SET;  
+  wlock.l_start = 0;  
+  wlock.l_len = 0;  
+  //wlock.l_pid -2;
+#endif
 
   while (1) {
     // TODO: Add IO multiplexing
