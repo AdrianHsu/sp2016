@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+
 #include <sys/time.h>
 
 #define ERR_EXIT(a) { perror(a); exit(1); }
@@ -125,65 +126,84 @@ int main(int argc, char** argv) {
     // Check new connection
     memcpy(&read_fds, &master, sizeof(master)); 
     memcpy(&write_fds, &master, sizeof(master)); //they are the same fds
-    //int result = select(maxfd + 1, &read_fds, NULL, NULL, &timeout);//read_fds, write_fds repeat
+    // int result = select(maxfd + 1, &read_fds, NULL, NULL, &timeout);//read_fds, write_fds repeat
+
+    // use select() to find which file descriptors are ready.
     int result = select(maxfd + 1, &read_fds, NULL, NULL, NULL);//read_fds, write_fds repeat
-    
+
     if(result <= 0) // no available fds
       continue; // return at once
+    int _result = 0;
+    if(FD_ISSET(svr.listen_fd, &read_fds)) {
+      clilen = sizeof(cliaddr);
+      // accept() new connections if there's any. 
+      conn_fd = accept(svr.listen_fd, (struct sockaddr*)&cliaddr, (socklen_t*)&clilen);
+      if (conn_fd < 0) {
+        if (errno == EINTR || errno == EAGAIN) continue;  // try again
+        if (errno == ENFILE) {
+          (void) fprintf(stderr, "out of file descriptor table ... (maxconn %d)\n", maxfd);
+          continue;
+        }
+        ERR_EXIT("accept")
+      }
+      requestP[conn_fd].conn_fd = conn_fd; // this connection's fd, denotes client address
+      requestP[conn_fd].file_fd = file_fd = -1; // r/w file
+
+      FD_SET(conn_fd, &master);
+      strcpy(requestP[conn_fd].host, inet_ntoa(cliaddr.sin_addr));
+      fprintf(stderr, "getting a new request... fd %d from %s\n", conn_fd, requestP[conn_fd].host);
+      _result++;
+    }
     
-    // for every fd which is waiting for handling
-    for(int _result = 0; _result < result; _result++) {
-      
-      int i = 0; // current id
+    int i = svr.listen_fd + 1; // current id
+    //for each request with file descriptor ready
+    for(; _result < result; _result++) {
+
       while(!FD_ISSET(i, &read_fds) && i < maxfd)// same as write_fds 
         i++;
       if(i == maxfd)
         break;
-      // new fd appears, listened by svr
-      if(i == svr.listen_fd) {
 
-        clilen = sizeof(cliaddr);
-        // accept this new fd, build up connection  
-        conn_fd = accept(svr.listen_fd, (struct sockaddr*)&cliaddr, (socklen_t*)&clilen);
-        if (conn_fd < 0) {
-          if (errno == EINTR || errno == EAGAIN) continue;  // try again
-          if (errno == ENFILE) {
-            (void) fprintf(stderr, "out of file descriptor table ... (maxconn %d)\n", maxfd);
-            continue;
-          }
-          ERR_EXIT("accept")
-        }
-        requestP[conn_fd].conn_fd = conn_fd; // this connection's fd, denotes client address
-        file_fd = -1;
-        requestP[conn_fd].file_fd = file_fd; // r/w file
-        
-        FD_SET(conn_fd, &master);
-        strcpy(requestP[conn_fd].host, inet_ntoa(cliaddr.sin_addr));
-        fprintf(stderr, "getting a new request... fd %d from %s\n", conn_fd, requestP[conn_fd].host);
-
-
-      } else {
 #ifdef READ_SERVER
-        ret = handle_read(&requestP[i]);
-        if (ret < 0) {
-          //fprintf(stderr, "bad request from %s\n", requestP[i].host);
-          continue;
-        }
-        // requestP[i]->filename is guaranteed to be successfully set.
-        if (requestP[i].file_fd == -1) {
-          // open the file here.
+      //use handle_read to read from the request
+      ret = handle_read(&requestP[i]);
+      if (ret < 0) {
+        //fprintf(stderr, "bad request from %s\n", requestP[i].host);
+        continue;
+      }
+      // requestP[i]->filename is guaranteed to be successfully set.
+      
+      // if this is the first time read of the request
+      if (requestP[i].file_fd == -1) {
+
+        // TODO: Add lock
+        // TODO: check if the request should be rejected.
+        // check lock and obtain lock for the file, reject when can't lock
+        // responds to client that the request is accepted.
+        file_fd = open(requestP[i].filename, O_RDONLY, 0);
+        requestP[i].file_fd = file_fd;
           fprintf(stderr, "Opening file [%s]\n", requestP[i].filename);
-          // TODO: Add lock
-          // TODO: check if the request should be rejected.
+        if(fcntl(requestP[i].file_fd, F_SETLKW, rlock) != -1) { 
+          // locked
+          // open the file descriptor for the file
           write(requestP[i].conn_fd, accept_header, sizeof(accept_header));
-          file_fd = open(requestP[i].filename, O_RDONLY, 0);
-          requestP[i].file_fd = file_fd;
+          //continue;
+        } else {
+          fprintf(stderr, "Reject reading file [%s]\n", requestP[i].filename);
+          write(requestP[i].conn_fd, reject_header, sizeof(reject_header));
+          FD_CLR(i, &master); //delete this already-read file from master & read_fds 
+          if (file_fd >= 0) close(file_fd);
+          close(requestP[i].conn_fd);
+          free_request(&requestP[i]);
+          //continue;
+          break;
         }
+      //} else {
         if (ret == 0) {
-          continue;
+          break;
         }
         while (1) {
-          ret = read(file_fd, buf, sizeof(buf));
+          ret = read(requestP[i].file_fd, buf, sizeof(buf));
           if (ret < 0) {
             fprintf(stderr, "Error when reading file %s\n", requestP[i].filename);
             break;
@@ -192,38 +212,39 @@ int main(int argc, char** argv) {
         }
         FD_CLR(i, &master); //delete this already-read file from master & read_fds
         fprintf(stderr, "Done reading file [%s]\n", requestP[i].filename);
-        
+      }
 #endif
 #ifndef READ_SERVER
-        do {
-          ret = handle_read(&requestP[i]);
-          if (ret < 0) {
-            fprintf(stderr, "bad request from %s\n", requestP[i].host);
-            continue;
-          }
-          // requestP[i]->filename is guaranteed to be successfully set.
-          if (file_fd == -1) {
-            // open the file here.
-            fprintf(stderr, "Opening file [%s]\n", requestP[i].filename);
-            // TODO: Add lock
-            // TODO: check if the request should be rejected.
-            write(requestP[i].conn_fd, accept_header, sizeof(accept_header));
-            file_fd = open(requestP[conn_fd].filename, O_WRONLY | O_CREAT | O_TRUNC,
-                S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-            requestP[i].file_fd = file_fd;
-          }
-          if (ret == 0) {
-            continue;
-          }
-          write(file_fd, requestP[i].buf, requestP[i].buf_len);
-        } while (ret > 0);
-        FD_CLR(i, &master); //delete this already-read file from master & write_fds
-        fprintf(stderr, "Done writing file [%s]\n", requestP[i].filename);
+      do {
+        //use handle_read to read from the request
+        ret = handle_read(&requestP[i]);
+        if (ret < 0) {
+          fprintf(stderr, "bad request from %s\n", requestP[i].host);
+          continue;
+        }
+        // requestP[i]->filename is guaranteed to be successfully set.
+        if (file_fd == -1) {
+          // open the file here.
+          fprintf(stderr, "Opening file [%s]\n", requestP[i].filename);
+          // TODO: Add lock
+          // TODO: check if the request should be rejected.
+
+          write(requestP[i].conn_fd, accept_header, sizeof(accept_header));
+          file_fd = open(requestP[conn_fd].filename, O_WRONLY | O_CREAT | O_TRUNC,
+              S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+          requestP[i].file_fd = file_fd;
+        }
+        if (ret == 0) {
+          continue;
+        }
+        write(file_fd, requestP[i].buf, requestP[i].buf_len);
+      } while (ret > 0);
+      FD_CLR(i, &master); //delete this already-read file from master & write_fds
+      fprintf(stderr, "Done writing file [%s]\n", requestP[i].filename);
 #endif
-        if (file_fd >= 0) close(file_fd);
-        close(requestP[i].conn_fd);
-        free_request(&requestP[i]);
-      }
+      if (file_fd >= 0) close(file_fd);
+      close(requestP[i].conn_fd);
+      free_request(&requestP[i]);
     }
 
     FD_ZERO(&read_fds);
