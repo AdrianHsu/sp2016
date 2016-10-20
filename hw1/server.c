@@ -103,19 +103,39 @@ int main(int argc, char** argv) {
   timeout.tv_sec = 0;
   timeout.tv_usec = 1;
 
-
+//#ifdef READ_SERVER
+//  struct flock rlock;
+//  memset (&rlock, 0, sizeof(rlock));
+//  rlock.l_type = F_RDLCK;
+//  rlock.l_whence = SEEK_SET;  
+//  rlock.l_start = 0;  
+//  rlock.l_len = 0;  
+//  rlock.l_pid -1; //getpid  
+//#endif
+//#ifndef READ_SERVER
+//  struct flock wlock;
+//  memset (&wlock, 0, sizeof(wlock));
+//  wlock.l_type = F_WRLCK;
+//  wlock.l_whence = SEEK_SET;  
+//  wlock.l_start = 0;  
+//  wlock.l_len = 0;  
+//  wlock.l_pid -2;
+//#endif
 
   while (1) {
     // TODO: Add IO multiplexing
     // Check new connection
     memcpy(&read_fds, &master, sizeof(master)); 
     memcpy(&write_fds, &master, sizeof(master)); //they are the same fds
-    int result = select(maxfd + 1, &read_fds, NULL, NULL, &timeout);//read_fds, write_fds repeat
+    //int result = select(maxfd + 1, &read_fds, NULL, NULL, &timeout);//read_fds, write_fds repeat
+    int result = select(maxfd + 1, &read_fds, NULL, NULL, NULL);//read_fds, write_fds repeat
+    
     if(result <= 0) // no available fds
       continue; // return at once
     
     // for every fd which is waiting for handling
     for(int _result = 0; _result < result; _result++) {
+      
       int i = 0; // current id
       while(!FD_ISSET(i, &read_fds) && i < maxfd)// same as write_fds 
         i++;
