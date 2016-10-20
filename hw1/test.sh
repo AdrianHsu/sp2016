@@ -25,5 +25,6 @@ do
         result[$t]="0"
     fi
     end_server
+    sleep 1
 done
 echo ${result[@]}
