@@ -106,11 +106,10 @@ int main(int argc, char** argv) {
 
 #ifdef READ_SERVER
   struct flock rlock;
-  rlock.l_type = F_RDLCK;
+  rlock.l_type = F_WRLCK;
   rlock.l_whence = SEEK_SET;  
   rlock.l_start = 0;  
   rlock.l_len = 0;  
-  //rlock.l_pid -1; //getpid  
 #endif
 #ifndef READ_SERVER
   struct flock wlock;
@@ -118,7 +117,6 @@ int main(int argc, char** argv) {
   wlock.l_whence = SEEK_SET;  
   wlock.l_start = 0;  
   wlock.l_len = 0;  
-  //wlock.l_pid -2;
 #endif
 
   while (1) {
@@ -184,17 +182,12 @@ int main(int argc, char** argv) {
         // open the file descriptor for the file
         file_fd = open(requestP[i].filename, O_RDONLY, 0);
         requestP[i].file_fd = file_fd;
-        int same_name = 0; 
-        fprintf(stderr, "1 = %s, 2 = %s \n", requestP[i].filename, a[0]);
-        if(strcmp(a[0],requestP[i].filename) == 0)
-          same_name = 1;
         
-        if((fcntl(requestP[i].file_fd, F_SETLKW, &rlock) != -1) && !same_name) { 
+        if((fcntl(requestP[i].file_fd, F_GETLK, &rlock)) || fcntl(requestP[i].file_fd, F_SETLKW, &rlock) != -1) { 
           // locked
           fprintf(stderr, "Opening file [%s]\n", requestP[i].filename);
           write(requestP[i].conn_fd, accept_header, sizeof(accept_header));
           //continue;
-          a[0] = requestP[i].filename;
         } else {
           fprintf(stderr, "Reject reading file [%s]\n", requestP[i].filename);
           write(requestP[i].conn_fd, reject_header, sizeof(reject_header));
@@ -202,7 +195,6 @@ int main(int argc, char** argv) {
           if (file_fd >= 0) close(file_fd);
           close(requestP[i].conn_fd);
           free_request(&requestP[i]);
-          a[0] = "";
           //continue;
           break;
         }
@@ -225,7 +217,6 @@ int main(int argc, char** argv) {
       close(requestP[i].conn_fd);
       free_request(&requestP[i]);
       a[0] = "";
-      fprintf(stderr, "haha\n");
 #endif
 #ifndef READ_SERVER
       //use handle_read to read from the request
@@ -234,7 +225,6 @@ int main(int argc, char** argv) {
         fprintf(stderr, "bad request from %s\n", requestP[i].host);
         //continue;
       }
-      fprintf(stderr, "???requestP[i].file_fd, i is: %d, %d\n",requestP[i].file_fd, i);
       if (requestP[i].file_fd == -1) {
         // TODO: Add lock
         // TODO: check if the request should be rejected.
@@ -244,7 +234,6 @@ int main(int argc, char** argv) {
         requestP[i].file_fd = file_fd;
         
         int same_name = 0; 
-        fprintf(stderr, "1 = %s, 2 = %s \n", requestP[i].filename, a[0]);
         if(strcmp(a[0],requestP[i].filename) == 0)
           same_name = 1;
         fprintf(stderr, "requestP[i].file_fd, i is: %d, %d\n",requestP[i].file_fd, i);
@@ -267,23 +256,18 @@ int main(int argc, char** argv) {
           break;
         }
       }
-      fprintf(stderr, "==0\n");
       if (ret == 0) {
         //break;
         //continue;
       } else { 
-        fprintf(stderr, "==1\n");
         write(requestP[i].file_fd, requestP[i].buf, requestP[i].buf_len);
-        fprintf(stderr, "==2\n");
       }
-      fprintf(stderr, "hihi\n");
       if(ret <= 0) {
         FD_CLR(i, &master); //delete this already-read file from master & write_fds
         fprintf(stderr, "Done writing file [%s]\n", requestP[i].filename);
         if (file_fd >= 0) close(file_fd);
         close(requestP[i].conn_fd);
         free_request(&requestP[i]);
-        fprintf(stderr, "haha\n");
         a[0] = "";
       }
       
