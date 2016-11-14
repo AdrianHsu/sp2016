@@ -1,35 +1,39 @@
-
-
-int main(int argc, char *argv[]) {
-	return 0;
-}
+#include <sys/wait.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h> // for open
+#include <unistd.h> // for close
 
 // NOTE1: Remember that every time you writes a message to a pipe or a FIFO, 
 // you should use fflush() to ensure the message being correctly passed out.
 
-// big_judge.c (./big_judge [judge_num] [player_num]) 
-// (1<=judge_num<=12)
-// (4<=player_num<=20)
+void forkJudge(int i, int pipefd[]) {
+	if(i == 0) return;
+	pid_t cpid = fork();
+    int X = open("./output_file.txt", O_WRONLY);
 
-// $ ./big_judge 1 4 
-// This will run 1 judge and 4 players. The big judge will fork and execute:
+    if (cpid == -1) {
+      perror("fork");
+      exit(EXIT_FAILURE);
+
+    } else if (cpid == 0) { //child process
+
+// The big judge will fork and execute:
 // $ ./judge 1 
 // The big_judge sends judge 1 
 // (judge 1 reads from standard input): 1 2 3 4 
-
-// At first, the big_judge should fork and execute the number of judges
-
-// with IDs from 1 to judge_num.
-
-// big_judge must build pipes to communicate with each of them
-
-// and then executing them:
-
-// The message coming from the judge 
-
+	char *argv[3] = {"-al", NULL};
+	dup2(X, 1); /* fd 1 is standard output,
+                   so this makes standard out refer to the same file as X  */
+   
+    execvp("ls", argv);
+    close(X);
+// The message coming from the judge would be
+    return forkJudge(--i, pipefd);
 // the competition result presided by that judge (from judge.c)
 
-// END execute, after big_judge executes judges
+// after big_judge executes judges
 
 // distribute every 4 players to an available judge via pipe.
 // There will be C(player_num,4) competitions
@@ -53,6 +57,46 @@ int main(int argc, char *argv[]) {
 // assign another competition to that judge
 
 // make full use of available judges but not let any available judge idle.
+
+    } else { //parent process
+    	close(X);
+    	return;
+    }
+}
+
+int main(int argc, char *argv[]) {
+
+// big_judge.c (./big_judge [judge_num] [player_num]) 
+// (1<=judge_num<=12)
+// (4<=player_num<=20)
+// $ ./big_judge 1 4 
+// This will run 1 judge and 4 players. 
+	
+	if(argc != 3) {
+		fprintf(stderr, "USAGE: ./big_judge [judge_num] [player_num]\n");
+      	exit(EXIT_FAILURE);
+	}
+
+	int judge_num = atoi(argv[1]);
+	int player_num = atoi(argv[2]);
+	if(judge_num < 1 || judge_num > 12 || player_num < 4 || player_num > 20) {
+		fprintf(stderr, "ERROR: invalid num\n");
+      	exit(EXIT_FAILURE);		
+	}
+
+// At first, the big_judge should fork and execute the number of judges
+// big_judge must build pipes to communicate with each of them
+// with IDs from 1 to judge_num.
+   int pipefd[2];
+   if (pipe(pipefd) == -1) {
+      perror("pipe");
+      exit(EXIT_FAILURE);
+   }
+   forkJudge(judge_num, pipefd);
+
+
+	return 0;
+}
 
 // The big_judge has to keep accumulative scores of all players.
 
