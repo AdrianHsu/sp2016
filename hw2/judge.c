@@ -1,5 +1,18 @@
-// judge.c (./judge [judge_id])
+#include <sys/wait.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h> // for open
+#include <unistd.h> // for close
 
+
+int main(int argc, char *argv[]) {
+
+// judge.c (./judge [judge_id])
+	if(argc != 2) {
+		fprintf(stderr, "USAGE: ./judge [judge_id]\n");
+      	exit(EXIT_FAILURE);
+	}
 // big_judge called -> $ ./judge 1 
 // The judge will create: 
 // judge1.FIFO 
@@ -11,13 +24,15 @@
 // The big_judge sends judge 1 
 // (judge 1 reads from standard input): 1 2 3 4 
 
-
 // create a FIFO named judge[judge_id].FIFO, such as judge1.FIFO
 // to read responses from the players
 
 // create four FIFOs named judge[judge_id]_A.FIFO...etc
-
 // to write messages to the players in the competition
+
+	return 0;
+}
+
 
 // The judge should read from standard input
 // waiting for the big_judge to assign four players in.

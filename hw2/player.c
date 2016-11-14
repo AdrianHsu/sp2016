@@ -1,7 +1,8 @@
 // player.c (./player [judge_id] [player_index] [random_key])
 // player_index would be a character in {'A', 'B', 'C', 'D'}
 // random_key would be an integer in range [0, 65536), used in this player in this competition
-
+int main(int argc, char *argv[]) {
+}
 // should be randomly generated unique for four players 
 // in the same competition.
 

@@ -11,7 +11,6 @@
 void forkJudge(int i, int pipefd[]) {
 	if(i == 0) return;
 	pid_t cpid = fork();
-    int X = open("./output_file.txt", O_WRONLY);
 
     if (cpid == -1) {
       perror("fork");
@@ -23,29 +22,25 @@ void forkJudge(int i, int pipefd[]) {
 // $ ./judge 1 
 // The big_judge sends judge 1 
 // (judge 1 reads from standard input): 1 2 3 4 
-	char *argv[3] = {"-al", NULL};
-	dup2(X, 1); /* fd 1 is standard output,
-                   so this makes standard out refer to the same file as X  */
-   
-    execvp("ls", argv);
-    close(X);
-// The message coming from the judge would be
+	char myjudge = i + '0';
+	char *argv[2] = { &myjudge, NULL};
+
+    execvp("./judge", argv);
     return forkJudge(--i, pipefd);
+
+// The message coming from the judge would be
 // the competition result presided by that judge (from judge.c)
 
 // after big_judge executes judges
-
 // distribute every 4 players to an available judge via pipe.
 // There will be C(player_num,4) competitions
-
 // players are numbered from 1 to player_num
-
 // the message sending to the judges are of the format
 // [p1_id] [p2_id] [p3_id] [p4_id]
 
 // If there is no available judge, 
-
 // waits until one of the judges returns the competition result
+
 // e.g. Judge 1 writes the result to standard output (sending to big_judge): 
 // format: [p1_id] [p1_rank]
 // 1 4 
@@ -55,11 +50,9 @@ void forkJudge(int i, int pipefd[]) {
 
 
 // assign another competition to that judge
-
 // make full use of available judges but not let any available judge idle.
 
     } else { //parent process
-    	close(X);
     	return;
     }
 }
