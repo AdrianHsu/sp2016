@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-   int
-main(int argc, char *argv[])
+
+int main(int argc, char *argv[])
 {
    int pipefd[2];
    pid_t cpid;
