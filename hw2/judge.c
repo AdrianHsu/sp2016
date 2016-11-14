@@ -4,33 +4,53 @@
 #include <string.h>
 #include <fcntl.h> // for open
 #include <unistd.h> // for close
-
+#include <errno.h>
 
 int main(int argc, char *argv[]) {
 
-// judge.c (./judge [judge_id])
-	if(argc != 2) {
-		fprintf(stderr, "USAGE: ./judge [judge_id]\n");
-      	exit(EXIT_FAILURE);
-	}
-// big_judge called -> $ ./judge 1 
-// The judge will create: 
-// judge1.FIFO 
-// judge1_A.FIFO 
-// judge1_B.FIFO 
-// judge1_C.FIFO 
-// judge1_D.FIFO 
+   // judge.c (./judge [judge_id])
+   if(argc != 1) {
+      fprintf(stderr, "USAGE: ./judge [judge_id]\n");
+      exit(EXIT_FAILURE);
+   }
+   int judge_id = atoi(argv[0]);
+   // big_judge called -> $ ./judge 1 
+   // The judge will create: 
+   // judge1.FIFO 
+   // judge1_A.FIFO 
+   // judge1_B.FIFO 
+   // judge1_C.FIFO 
+   // judge1_D.FIFO 
+   int pipefd[2];
+   if (pipe(pipefd) == -1) {
+      perror("pipe");
+      exit(EXIT_FAILURE);
+   }
+   char buf;
 
-// The big_judge sends judge 1 
-// (judge 1 reads from standard input): 1 2 3 4 
+   // if( dup2( STDIN_FILENO, pipefd[0] ) < 0 ){
+   //     perror( "dup2(  )" );
+   //     exit(EXIT_FAILURE);
+   // }
 
-// create a FIFO named judge[judge_id].FIFO, such as judge1.FIFO
-// to read responses from the players
+   close(pipefd[1]);          /* Close unused write end */
+   while (read(STDIN_FILENO, &buf, 1) > 0) {
+      write(STDOUT_FILENO, &buf, 1);
 
-// create four FIFOs named judge[judge_id]_A.FIFO...etc
-// to write messages to the players in the competition
+   }
+   write(STDOUT_FILENO, "\n", 1);
 
-	return 0;
+   close(pipefd[0]);
+   // The big_judge sends judge 1 
+   // (judge 1 reads from standard input): 1 2 3 4 
+
+   // create a FIFO named judge[judge_id].FIFO, such as judge1.FIFO
+   // to read responses from the players
+
+   // create four FIFOs named judge[judge_id]_A.FIFO...etc
+   // to write messages to the players in the competition
+
+   return 0;
 }
 
 

@@ -9,52 +9,58 @@
 // you should use fflush() to ensure the message being correctly passed out.
 
 void forkJudge(int i, int pipefd[]) {
-	if(i == 0) return;
-	pid_t cpid = fork();
+   if(i == 0) return;
+   pid_t cpid = fork();
 
-    if (cpid == -1) {
+   if (cpid == -1) {
       perror("fork");
       exit(EXIT_FAILURE);
 
-    } else if (cpid == 0) { //child process
+   } else if (cpid == 0) { //child process
 
-// The big judge will fork and execute:
-// $ ./judge 1 
-// The big_judge sends judge 1 
-// (judge 1 reads from standard input): 1 2 3 4 
-	char myjudge = i + '0';
-	char *argv[2] = { &myjudge, NULL};
+      // The big judge will fork and execute:
+      // $ ./judge 1 
+      // The big_judge sends judge 1 
+      // (judge 1 reads from standard input): 1 2 3 4 
+      char myjudge = i + '0';
 
-    execvp("./judge", argv);
-    return forkJudge(--i, pipefd);
+      forkJudge(--i, pipefd);
 
-// The message coming from the judge would be
-// the competition result presided by that judge (from judge.c)
+      close(pipefd[1]);            /* Close unused write end */
+      if( dup2( pipefd[0], STDIN_FILENO ) < 0 ){
+         perror( "dup2()" );
+         exit(EXIT_FAILURE);
+      }
+      //close(pipefd[0]);          /* Close unused read end */
+      execl("./judge",&myjudge);
+      
 
-// after big_judge executes judges
-// distribute every 4 players to an available judge via pipe.
-// There will be C(player_num,4) competitions
-// players are numbered from 1 to player_num
-// the message sending to the judges are of the format
-// [p1_id] [p2_id] [p3_id] [p4_id]
+   } else { //parent process
+      char* message = "1 2 3 4\n";
+      // after big_judge executes judges
+      // distribute every 4 players to an available judge via pipe.
+      // There will be C(player_num,4) competitions
+      // players are numbered from 1 to player_num
+      // the message sending to the judges are of the format
+      // [p1_id] [p2_id] [p3_id] [p4_id]
 
-// If there is no available judge, 
-// waits until one of the judges returns the competition result
+      // If there is no available judge, 
+      // waits until one of the judges returns the competition result
+      // e.g. Judge 1 writes the result to standard output (sending to big_judge): 
+      // format: [p1_id] [p1_rank]
+      // 1 4 
+      // 2 2 
+      // 3 1 
+      // 4 3 
+      // assign another competition to that judge
+      // make full use of available judges but not let any available judge idle.
+      close(pipefd[0]);
+      write(pipefd[1], message, sizeof(message));
+      //close(pipefd[1]);
+      wait(NULL);
 
-// e.g. Judge 1 writes the result to standard output (sending to big_judge): 
-// format: [p1_id] [p1_rank]
-// 1 4 
-// 2 2 
-// 3 1 
-// 4 3 
-
-
-// assign another competition to that judge
-// make full use of available judges but not let any available judge idle.
-
-    } else { //parent process
-    	return;
-    }
+      return;
+   }
 }
 
 int main(int argc, char *argv[]) {
@@ -104,7 +110,8 @@ int main(int argc, char *argv[]) {
 // the first, second, third, and fourth place gets 3, 2, 1, and 0 
 
 // The big_judge reads the result, and does the calculation
-
+// The message coming from the judge would be
+// the competition result presided by that judge (from judge.c)
 
 // After all competitions are done:
 // big_judge should send the string “-1 -1 -1 -1\n” to all judges

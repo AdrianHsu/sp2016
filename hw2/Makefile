@@ -9,7 +9,7 @@ LD=g++
 C_FLAGS=
 # end of user configuration
 #
-ALL : big_judge judge player
+ALL: clean big_judge judge player
 
 big_judge: 
 	$(CC) $(C_FLAGS) big_judge.c -o $(OBJECT1)
