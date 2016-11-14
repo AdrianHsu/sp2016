@@ -1,3 +1,9 @@
+
+
+int main(int argc, char *argv[]) {
+	return 0;
+}
+
 // NOTE1: Remember that every time you writes a message to a pipe or a FIFO, 
 // you should use fflush() to ensure the message being correctly passed out.
 
@@ -36,6 +42,13 @@
 // If there is no available judge, 
 
 // waits until one of the judges returns the competition result
+// e.g. Judge 1 writes the result to standard output (sending to big_judge): 
+// format: [p1_id] [p1_rank]
+// 1 4 
+// 2 2 
+// 3 1 
+// 4 3 
+
 
 // assign another competition to that judge
 
