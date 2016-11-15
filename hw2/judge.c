@@ -13,6 +13,7 @@
 #define FOUR_PLAYER 4
 #define MESSAGE_MAX 20
 #define MYRAND_MAX 65536
+#define MAX_ROUND 20
 
 int judge_id;
 void myswap(char* s0, char* s1) {
@@ -49,9 +50,7 @@ void myitoa (int n,char s[])
       // do nothin
    }
 }
-
-
-void forkPlayer(int player_index, int myfifo, int rand_key) {
+void forkPlayer(int player_index, int rand_key) {
    pid_t cpid = fork();
 
    if (cpid == -1) {
@@ -70,11 +69,24 @@ void forkPlayer(int player_index, int myfifo, int rand_key) {
       myitoa(rand_key, random_key);
 
       // printf("myjudge_id: %s\n", myjudge_id);
-      // printf("random_key: %s\n", random_key);      
+      // printf("random_key: %s\n", random_key);
+
+// The judge executes: 
+// $ ./player 1 A 9 
+// $ ./player 1 B 2013 
+// $ ./player 1 C 10000 
+// $ ./player 1 D 65535 
+
+// run exec() to execute the player programs
+// start 20 game rounds.
+
+// The executable file of a player named "player", 
+// are placed in the same directory containing "big_judge" and "judge"
+
       execl("./player", myjudge_id, pIdx, random_key, NULL);
 
    } else { //parent
-
+      wait(NULL);
    }
 }
 
@@ -90,11 +102,11 @@ void parse4players(char message[], int _ids[]) {
       s = strtok(NULL, " ");
    }
 }
-void judgefifo(char first_str[], int judge_id) {
+void judgefifo(char first_str[]) {
 
    char str1[2];
    char str2[3];
-   strcat(first_str, "./tmp/judge"); 
+   strcat(first_str, "./tmp/judge");
 
    if(judge_id < 10) {
       str1[0] = judge_id + '0';
@@ -109,13 +121,14 @@ void judgefifo(char first_str[], int judge_id) {
    strcat(first_str, ".FIFO"); 
    // printf("first_str: %s\n", first_str);
 }
-void playerfifo(char first_str[], int judge_id) {
+void playerfifo(char first_str[], int player_id) {
 
    char str1[2];
    char str2[3];
    strcat(first_str, "./tmp/judge"); 
 
    if(judge_id < 10) {
+      memset(str1, 0, sizeof(str1));      
       str1[0] = judge_id + '0';
       str1[1] = '\0';
       strcat(first_str, str1); 
@@ -126,7 +139,7 @@ void playerfifo(char first_str[], int judge_id) {
    }
    strcat(first_str, "_");
    char t[1];
-   t[0] = 'A' + judge_id - 1;
+   t[0] = 'A' + player_id - 1;
    strcat(first_str, t);
    
    strcat(first_str, ".FIFO"); 
@@ -156,7 +169,7 @@ int main(int argc, char *argv[]) {
 // The judge should read from standard input
 // waiting for the big_judge to assign four players in.
    char message[MESSAGE_MAX];
-   if (read(STDIN_FILENO, message, sizeof message) > 0) {
+   if (read(STDIN_FILENO, message, sizeof(message)) > 0) {
       // printf("%s\n", message);
       // fflush(stdout);
       //write(STDOUT_FILENO, &buf, 20);
@@ -172,61 +185,66 @@ int main(int argc, char *argv[]) {
    // for(int i = 0; i < FOUR_PLAYER; i ++)
    //    printf("%d\n", _ids[i]);
 
-   // create a FIFO named judge[judge_id].FIFO, such as judge1.FIFO
-   // to read responses from the players
-
-   char my1stfifo[MESSAGE_MAX];
-   memset(my1stfifo, 0, sizeof(my1stfifo));
-   judgefifo(my1stfifo, judge_id);
-   // printf("first_str: %s\n", my1stfifo);
-
-   // create four FIFOs named judge[judge_id]_A.FIFO...etc
-   // to write messages to the players in the competition
-
+   srand(time(NULL));
    char myStrfifo[FOUR_PLAYER][MESSAGE_MAX];
-   int myfifo[4];
-
-   for(int i = 0; i < FOUR_PLAYER; i++) {
-      myfifo[i] = 0;
+   int myfifo_fd[4];
+   for(int i = 0; i < FOUR_PLAYER; i++) { // (i + 1) is player_id
+      myfifo_fd[i] = 0;
       memset(myStrfifo[i], 0, sizeof(myStrfifo[i]));
-      playerfifo(myStrfifo[i], judge_id);
-      // printf("str: %s\n", myfifo[i]);
-      // myfifo[i] = mkfifo(myStrfifo[i]);
+      playerfifo(myStrfifo[i], i + 1);
+      // printf("str: %s\n", myStrfifo[i]);
       int rand_key = ( rand() % MYRAND_MAX );
-
-      forkPlayer(i + 1, myfifo[i], rand_key);
-   }
-
 // After knowing the players, 
 // the judge forks four child processes
+      forkPlayer(i + 1, rand_key);
+   }
 
-   return 0;
-}
+   // create a FIFO named judge[judge_id].FIFO, such as judge1.FIFO
+   // to "read" responses from the players
+   char my1stfifo[MESSAGE_MAX];
+   memset(my1stfifo, 0, sizeof(my1stfifo));
+   judgefifo(my1stfifo);
+   // printf("first_smtr: %s\n", my1stfifo);
+   mkfifo(my1stfifo, 0666);
+   int my1stfifo_fd = open(my1stfifo, O_RDONLY);
 
+   char buf[1024];
+   memset(buf, 0, sizeof(buf));
+   while(read(my1stfifo_fd, buf, sizeof(buf)) > 0) {
+      printf("%s\n", buf);
+      fflush(stdout);
+   }
 
-// The judge executes: 
-// $ ./player 1 A 9 
-// $ ./player 1 B 2013 
-// $ ./player 1 C 10000 
-// $ ./player 1 D 65535 
+   for(int i = 0; i < FOUR_PLAYER; i ++) {
+      mkfifo(myStrfifo[i], 0666);
+      myfifo_fd[i] = open(myStrfifo[i], O_WRONLY);
 
-// run exec() to execute the player programs
-// start 20 game rounds.
+   }
+   // create four FIFOs named judge[judge_id]_A.FIFO...etc
+   // to "write" messages to the players in the competition
 
-// The executable file of a player named "player", 
-// are placed in the same directory containing "big_judge" and "judge"
-
+   for(int i = 1; i < MAX_ROUND; i++) {
 // In each round, 
 
-// except for the first round,
-
-// Round 2, judge 1 sends player 1 through judge1_A.FIFO:
-// 3 5 5 1 
+// except for the first round
 
 // the judge tells every player the result of the previous round
 // via specific FIFO
-
 // help them decide what number to tell in the next round. (AH: IGNORED)
+// Round 2, judge 1 sends player 1 through judge1_A.FIFO:
+// 3 5 5 1 
+
+   }
+
+   for(int i = 0; i < FOUR_PLAYER; i++) {
+      close(myfifo_fd[i]);
+      unlink(myStrfifo[i]);
+   }
+   close(my1stfifo_fd);
+   unlink(my1stfifo);
+
+   return 0;
+}
 
 // After giving out the message
 // the judge has to collect numbers coming from the four players.

@@ -16,7 +16,11 @@
 int judge_num;
 int player_num;
 
-
+void myswap(char* s0, char* s1) {
+   char tmp = *s0;
+   *s0 = *s1;
+   *s1 = tmp;   
+}
 void myitoa (int n,char s[])
 {
    int i, j, sign;
@@ -33,10 +37,8 @@ void myitoa (int n,char s[])
       s[ i++ ] = '-';
    s[ i ] = '\0';
 
-   if(_size == 3) {
-      char tmp = s[0];
-      s[0] = s[1];
-      s[1] = tmp;
+   if(_size == 3) { //e.g. 12
+      myswap(&s[0], &s[1]);
    } else if(_size == 2) {
       // do nothin
    }
