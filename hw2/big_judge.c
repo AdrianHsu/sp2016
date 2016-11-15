@@ -5,6 +5,8 @@
 #include <fcntl.h> // for open
 #include <unistd.h> // for close
 #include <time.h>    // time()
+#include <sys/types.h>
+#include <signal.h>
 
 // NOTE1: Remember that every time you writes a message to a pipe or a FIFO, 
 // you should use fflush() to ensure the message being correctly passed out.
@@ -51,7 +53,6 @@ void forkJudge(int i, int pipefd[], int _p[]) {
       }
       //close(pipefd[0]);          /* Close unused read end */
       execl("./judge", &myjudge);
-      
 
    } else { //parent process
       // after big_judge executes judges
@@ -94,12 +95,16 @@ void forkJudge(int i, int pipefd[], int _p[]) {
          strcat(message, " ");     
       }
       fflush(stdout);
-      fprintf(stdout, "%s\n", message);
+      // fprintf(stdout, "%s\n", message);
 
       //close(pipefd[0]);
       write(pipefd[1], message, sizeof(message));
       //close(pipefd[1]);
       forkJudge(--i, pipefd, _p);
+      // int rc = kill (cpid, SIGKILL);
+
+      wait(NULL);
+
    }
 }
 
@@ -148,6 +153,7 @@ int main(int argc, char *argv[]) {
    }
    int tmp_num = judge_num;
    forkJudge(tmp_num, pipefd, _p);
+
 
 // If there is no available judge, 
 // waits until one of the judges returns the competition result

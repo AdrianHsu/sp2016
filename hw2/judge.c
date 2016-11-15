@@ -6,6 +6,8 @@
 #include <unistd.h> // for close
 #include <errno.h>
 
+
+
 int main(int argc, char *argv[]) {
 
    // judge.c (./judge [judge_id])
@@ -34,13 +36,14 @@ int main(int argc, char *argv[]) {
    // }
 
    close(pipefd[1]);          /* Close unused write end */
+   char meesage[20];
    while (read(STDIN_FILENO, &buf, 1) > 0) {
-      // write(STDOUT_FILENO, &buf, 1);
-
+      write(STDOUT_FILENO, &buf, 1);
    }
-   // write(STDOUT_FILENO, "\n", 1);
+   write(STDOUT_FILENO, "\n", 1);
 
    close(pipefd[0]);
+
    // The big_judge sends judge 1 
    // (judge 1 reads from standard input): 1 2 3 4 
 
