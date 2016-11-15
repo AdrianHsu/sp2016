@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>    // time()
+#include <sys/time.h>
 
 int judge_id;
 int random_key;
@@ -94,18 +95,25 @@ void playerfifo(char first_str[], int judge_id, int player_id) {
    // printf("first_str: %s\n", first_str);
 }
 void makeChoice(char ch[]) { // 1, 3, 5
-   srand(time(NULL));
    int rand_key = ( rand() % CHOICE_RAND_MAX );
    ch[1] = '\0';
    if(rand_key == 0)
    	ch[0] = '1';
    else if (rand_key == 1)
-   	ch[1] = '3';
+   	ch[0] = '3';
    else if (rand_key == 2)
-   	ch[2] = '5';
+   	ch[0] = '5';
 }
 int main(int argc, char *argv[]) {
-   
+    
+	struct timeval time; 
+    gettimeofday(&time,NULL);
+
+     // microsecond has 1 000 000
+     // Assuming you did not need quite that accuracy
+     // Also do not assume the system clock has that accuracy.
+     srand((time.tv_sec * 1000) + (time.tv_usec / 1000));
+
 // player.c (./player [judge_id] [player_index] [random_key])
 // player_index would be a character in {'A', 'B', 'C', 'D'}
 // random_key would be an integer in range [0, 65536), used in this player in this competition
@@ -141,7 +149,19 @@ int main(int argc, char *argv[]) {
    char choice[2];
    memset(choice, 0, sizeof(choice));
    makeChoice(choice);
-   write(my1stfifo_fd, choice, sizeof(choice));
+
+// In the first round, the player should first send its response to judge
+// format: [player_index] [random_key] [number_choose] 
+   char message[MESSAGE_MAX];
+   memset(message, 0, sizeof(message));
+   strcat(message, ch_p_index);
+   strcat(message, " ");
+   strcat(message, argv[2]);
+   strcat(message, " ");
+   strcat(message, choice);
+   sleep(1);
+   write(my1stfifo_fd, message, sizeof(message));
+   // printf("write done, message = %s\n", message);
 
 // The player should open a FIFO named judge[judge_id]_[player_index].FIFO, 
 // which should be already created by the judge. 
@@ -166,11 +186,6 @@ int main(int argc, char *argv[]) {
 
 }
 
-
-
-
-// In the first round, the player should first send its response to judge
-// format: [player_index] [random_key] [number_choose] 
 
 // After the first round, the message from judge would be: 
 // format: [p_A_number] [p_B_number] [p_C_number] [p_D_number] 

@@ -10,6 +10,7 @@
 #include <time.h>    // time()
 #include <signal.h>
 
+
 #define FOUR_PLAYER 4
 #define MESSAGE_MAX 20
 #define MYRAND_MAX 65536
@@ -199,16 +200,44 @@ int main(int argc, char *argv[]) {
       int rand_key = ( rand() % MYRAND_MAX );
       forkPlayer(i + 1, rand_key);
    }
-   char buf[1024];
-   memset(buf, 0, sizeof(buf));
+   char mes[FOUR_PLAYER][MESSAGE_MAX];
+   for(int i = 0; i < FOUR_PLAYER; i++)
+      memset(mes[i], 0, sizeof(mes[i]));
    int my1stfifo_fd = open(my1stfifo, O_RDONLY);
-
-   while(read(my1stfifo_fd, buf, sizeof(buf)) > 0) {
-
-      printf("buf: %s\n", buf);
-      fflush(stdout);
+   char buf[MESSAGE_MAX];
+   memset(buf, 0, sizeof(buf));
+   int k = 0;
+   while(k <= 3) {
+      read(my1stfifo_fd, buf, sizeof(buf));
+      if(buf[0] == 'A') {
+         printf("%c\n", buf[0]);
+         strcpy(mes[0], buf);
+         buf[0] = 0;
+      }
+      else if(buf[0] == 'B'){
+         printf("%c\n", buf[0]);
+         strcpy(mes[1], buf);
+         buf[0] = 0;
+      }
+      else if(buf[0] == 'C'){
+         printf("%c\n", buf[0]);
+         strcpy(mes[2], buf);
+         buf[0] = 0;
+      }
+      else if(buf[0] == 'D'){
+         printf("%c\n", buf[0]);
+         strcpy(mes[3], buf);
+         buf[0] = 0;
+      }
+      else
+         continue;
+      k++;
    }
-   
+   for(int i = 0; i < FOUR_PLAYER; i++)
+      printf("yeah%s\n", mes[i]);
+
+   fflush(stdout);
+
 
    char myStrfifo[FOUR_PLAYER][MESSAGE_MAX];
    int myfifo_fd[4];
