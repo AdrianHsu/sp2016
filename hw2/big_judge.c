@@ -41,9 +41,6 @@ void myitoa (int n,char s[])
       // do nothin
    }
 }
-
-
-
 void parse4players(char message[], int _p[]) { //_p denotes available players
 
    srand(time(NULL));
@@ -74,7 +71,7 @@ void parse4players(char message[], int _p[]) { //_p denotes available players
 
    for(int i = 0; i < FOUR_PLAYER; i++) {
       int aInt = _ids[ i ];
-      char str[2];
+      char str[3];
       memset(str, 0, sizeof str);
 
       myitoa(aInt, str);
@@ -109,7 +106,7 @@ void forkJudge(int i, int pipefd[], int _p[]) {
       //close(pipefd[0]);          /* Close unused read end */
       execl("./judge", &myjudge);
 
-      exit(EXIT_SUCCESS);
+      // exit(EXIT_SUCCESS);
    } else { //parent process
 
       char message[MESSAGE_MAX]; // dummy 
@@ -149,7 +146,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "ERROR: invalid num\n");
       	exit(EXIT_FAILURE);		
 	}
-	if(player_num / judge_num != 4) {
+	if(player_num / judge_num != FOUR_PLAYER) {
 		fprintf(stderr, "ERROR: simplified version invalid\n");
       	exit(EXIT_FAILURE);		
 	}

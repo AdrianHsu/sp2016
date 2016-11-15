@@ -1,7 +1,25 @@
+#include <sys/wait.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int judge_id;
+int random_key;
+
+int main(int argc, char *argv[]) {
+   
 // player.c (./player [judge_id] [player_index] [random_key])
 // player_index would be a character in {'A', 'B', 'C', 'D'}
 // random_key would be an integer in range [0, 65536), used in this player in this competition
-int main(int argc, char *argv[]) {
+   if(argc != 3) {
+      fprintf(stderr, "USAGE: ./player [judge_id] [player_index] [random_key]\n");
+      exit(EXIT_FAILURE);
+   }
+   judge_id = atoi(argv[0]);
+   char* player_index = argv[1];
+   random_key = atoi(argv[2]);
+
+   printf("%d+%s+%d\n", judge_id, player_index, random_key);
 }
 // should be randomly generated unique for four players 
 // in the same competition.
