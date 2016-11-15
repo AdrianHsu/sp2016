@@ -86,7 +86,7 @@ void forkPlayer(int player_index, int rand_key) {
       execl("./player", myjudge_id, pIdx, random_key, NULL);
 
    } else { //parent
-      wait(NULL);
+      // wait(NULL);
    }
 }
 
@@ -186,43 +186,45 @@ int main(int argc, char *argv[]) {
    //    printf("%d\n", _ids[i]);
 
    srand(time(NULL));
-   char myStrfifo[FOUR_PLAYER][MESSAGE_MAX];
-   int myfifo_fd[4];
-   for(int i = 0; i < FOUR_PLAYER; i++) { // (i + 1) is player_id
-      myfifo_fd[i] = 0;
-      memset(myStrfifo[i], 0, sizeof(myStrfifo[i]));
-      playerfifo(myStrfifo[i], i + 1);
-      // printf("str: %s\n", myStrfifo[i]);
-      int rand_key = ( rand() % MYRAND_MAX );
-// After knowing the players, 
-// the judge forks four child processes
-      forkPlayer(i + 1, rand_key);
-   }
-
    // create a FIFO named judge[judge_id].FIFO, such as judge1.FIFO
    // to "read" responses from the players
    char my1stfifo[MESSAGE_MAX];
    memset(my1stfifo, 0, sizeof(my1stfifo));
    judgefifo(my1stfifo);
-   // printf("first_smtr: %s\n", my1stfifo);
+   // printf("first_str: %s\n", my1stfifo);
    mkfifo(my1stfifo, 0666);
-   int my1stfifo_fd = open(my1stfifo, O_RDONLY);
-
+   for(int i = 0; i < FOUR_PLAYER; i++) { // (i + 1) is player_id
+// After knowing the players, 
+// the judge forks four child processes
+      int rand_key = ( rand() % MYRAND_MAX );
+      forkPlayer(i + 1, rand_key);
+   }
    char buf[1024];
    memset(buf, 0, sizeof(buf));
+   int my1stfifo_fd = open(my1stfifo, O_RDONLY);
+
    while(read(my1stfifo_fd, buf, sizeof(buf)) > 0) {
-      printf("%s\n", buf);
+
+      printf("buf: %s\n", buf);
       fflush(stdout);
    }
+   
 
-   for(int i = 0; i < FOUR_PLAYER; i ++) {
-      mkfifo(myStrfifo[i], 0666);
-      myfifo_fd[i] = open(myStrfifo[i], O_WRONLY);
+   char myStrfifo[FOUR_PLAYER][MESSAGE_MAX];
+   int myfifo_fd[4];
+   for(int i = 0; i <  FOUR_PLAYER; i++) {
+      myfifo_fd[i] = 0;
+      memset(myStrfifo[i], 0, sizeof(myStrfifo[i]));
+      playerfifo(myStrfifo[i], i + 1);
+      // printf("str: %s\n", myStrfifo[i]);
+   // for(int i = 0; i < FOUR_PLAYER; i ++) {
+   //    mkfifo(myStrfifo[i], 0666);
+   //    myfifo_fd[i] = open(myStrfifo[i], O_WRONLY);
 
-   }
+   // }
    // create four FIFOs named judge[judge_id]_A.FIFO...etc
    // to "write" messages to the players in the competition
-
+   }
    for(int i = 1; i < MAX_ROUND; i++) {
 // In each round, 
 

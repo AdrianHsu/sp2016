@@ -138,8 +138,6 @@ int main(int argc, char *argv[]) {
    int my1stfifo_fd;
    my1stfifo_fd = open(my1stfifo, O_WRONLY);
 
-   
-
    char choice[2];
    memset(choice, 0, sizeof(choice));
    makeChoice(choice);
