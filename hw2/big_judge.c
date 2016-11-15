@@ -11,23 +11,36 @@
 // NOTE1: Remember that every time you writes a message to a pipe or a FIFO, 
 // you should use fflush() to ensure the message being correctly passed out.
 #define FOUR_PLAYER 4
+#define MESSAGE_MAX 20
 
 int judge_num;
 int player_num;
 
+
 void myitoa (int n,char s[])
 {
    int i, j, sign;
-   if((sign = n)<0)
+   if((sign = n) < 0)
       n = -n;
    i = 0;
+   int _size = 1;
+
    do {
-      s[ i++ ] = n%10 + '0';
+      s[ i++ ] = n % 10 + '0';
+      _size++;
    }
-   while ( (n/=10) > 0);
+   while ( (n /= 10) > 0);
    if(sign < 0)
-      s[i++] = '-';
-   s[i]='\0';
+      s[ i++ ] = '-';
+   s[ i ] = '\0';
+
+   if(_size == 3) {
+      char tmp = s[0];
+      s[0] = s[1];
+      s[1] = tmp;
+   } else if(_size == 2) {
+      // do nothin
+   }
 } 
 
 void forkJudge(int i, int pipefd[], int _p[]) {
@@ -73,15 +86,16 @@ void forkJudge(int i, int pipefd[], int _p[]) {
          while( _p[ _pickedIdx ] == 0)
             _pickedIdx = ( rand() % player_num); 
 
-         _ids[ i ] = _pickedIdx;
+         _ids[ i ] = _pickedIdx + 1; // players are numbered from 1 to player_num
          _p[ _pickedIdx ] = 0;
       }
 
-      //  for(int i = 0; i < FOUR_PLAYER; i++)
-      //   	fprintf(stdout, "%d ", _ids[i]);
-      // fprintf(stdout, "\n");
+       for(int i = 0; i < FOUR_PLAYER; i++)
+        	fprintf(stdout, "%d ", _ids[i]);
+      fprintf(stdout, "\n");
 
-      char message[20]; // dummy 
+      char message[MESSAGE_MAX]; // dummy 
+
       memset(message, 0, sizeof message);
 
       for(int i = 0; i < FOUR_PLAYER; i++) {
@@ -92,9 +106,10 @@ void forkJudge(int i, int pipefd[], int _p[]) {
          myitoa(aInt, str);
 
          strcat(message,  str );
-         strcat(message, " ");     
+         if(i != FOUR_PLAYER - 1)
+            strcat(message, " ");     
       }
-      fflush(stdout);
+      // fflush(stdout);
       // fprintf(stdout, "%s\n", message);
 
       //close(pipefd[0]);
