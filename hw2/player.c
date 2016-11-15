@@ -15,6 +15,8 @@ int random_key;
 #define FOUR_PLAYER 4
 #define MESSAGE_MAX 20
 #define CHOICE_RAND_MAX 3
+#define MYRAND_MAX 65536
+
 
 void myswap(char* s0, char* s1) {
    char tmp = *s0;
@@ -95,7 +97,10 @@ void playerfifo(char first_str[], int judge_id, int player_id) {
    // printf("first_str: %s\n", first_str);
 }
 void makeChoice(char ch[]) { // 1, 3, 5
+
    int rand_key = ( rand() % CHOICE_RAND_MAX );
+   // printf("%d\n", rand_key);
+
    ch[1] = '\0';
    if(rand_key == 0)
    	ch[0] = '1';
@@ -106,14 +111,6 @@ void makeChoice(char ch[]) { // 1, 3, 5
 }
 int main(int argc, char *argv[]) {
     
-	struct timeval time; 
-    gettimeofday(&time,NULL);
-
-     // microsecond has 1 000 000
-     // Assuming you did not need quite that accuracy
-     // Also do not assume the system clock has that accuracy.
-     srand((time.tv_sec * 1000) + (time.tv_usec / 1000));
-
 // player.c (./player [judge_id] [player_index] [random_key])
 // player_index would be a character in {'A', 'B', 'C', 'D'}
 // random_key would be an integer in range [0, 65536), used in this player in this competition
@@ -136,6 +133,11 @@ int main(int argc, char *argv[]) {
    strcpy(ch_p_index, _player_index); // 'A', 'B', 'C', 'D'
    int player_index = ch_p_index[0] - 'A' + 1; // 1, 2, 3, 4
    // printf("%d+%s+%d\n", judge_id, _player_index, random_key);
+   
+   int pid = getpid(); // get it as per your OS
+	struct timeval t;
+	gettimeofday(&t, NULL);
+	srand(t.tv_usec * t.tv_sec * pid);
 
 // judge: 1) judge1.FIFO 2) judge1_A.FIFO
 // player: 1) judge1.FIFO 2) judge1_A.FIFO 
