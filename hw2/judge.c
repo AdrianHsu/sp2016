@@ -35,10 +35,10 @@ int main(int argc, char *argv[]) {
 
    close(pipefd[1]);          /* Close unused write end */
    while (read(STDIN_FILENO, &buf, 1) > 0) {
-      write(STDOUT_FILENO, &buf, 1);
+      // write(STDOUT_FILENO, &buf, 1);
 
    }
-   write(STDOUT_FILENO, "\n", 1);
+   // write(STDOUT_FILENO, "\n", 1);
 
    close(pipefd[0]);
    // The big_judge sends judge 1 

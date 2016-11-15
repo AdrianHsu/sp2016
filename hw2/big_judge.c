@@ -4,11 +4,31 @@
 #include <string.h>
 #include <fcntl.h> // for open
 #include <unistd.h> // for close
+#include <time.h>    // time()
 
 // NOTE1: Remember that every time you writes a message to a pipe or a FIFO, 
 // you should use fflush() to ensure the message being correctly passed out.
+#define FOUR_PLAYER 4
 
-void forkJudge(int i, int pipefd[]) {
+int judge_num;
+int player_num;
+
+void myitoa (int n,char s[])
+{
+   int i, j, sign;
+   if((sign = n)<0)
+      n = -n;
+   i = 0;
+   do {
+      s[ i++ ] = n%10 + '0';
+   }
+   while ( (n/=10) > 0);
+   if(sign < 0)
+      s[i++] = '-';
+   s[i]='\0';
+} 
+
+void forkJudge(int i, int pipefd[], int _p[]) {
    if(i == 0) return;
    pid_t cpid = fork();
 
@@ -24,19 +44,16 @@ void forkJudge(int i, int pipefd[]) {
       // (judge 1 reads from standard input): 1 2 3 4 
       char myjudge = i + '0';
 
-      forkJudge(--i, pipefd);
-
-      close(pipefd[1]);            /* Close unused write end */
+      //close(pipefd[1]);            /* Close unused write end */
       if( dup2( pipefd[0], STDIN_FILENO ) < 0 ){
          perror( "dup2()" );
          exit(EXIT_FAILURE);
       }
       //close(pipefd[0]);          /* Close unused read end */
-      execl("./judge",&myjudge);
+      execl("./judge", &myjudge);
       
 
    } else { //parent process
-      char* message = "1 2 3 4\n";
       // after big_judge executes judges
       // distribute every 4 players to an available judge via pipe.
       // There will be C(player_num,4) competitions
@@ -44,28 +61,56 @@ void forkJudge(int i, int pipefd[]) {
       // the message sending to the judges are of the format
       // [p1_id] [p2_id] [p3_id] [p4_id]
 
-      // If there is no available judge, 
-      // waits until one of the judges returns the competition result
-      // e.g. Judge 1 writes the result to standard output (sending to big_judge): 
-      // format: [p1_id] [p1_rank]
-      // 1 4 
-      // 2 2 
-      // 3 1 
-      // 4 3 
-      // assign another competition to that judge
-      // make full use of available judges but not let any available judge idle.
-      close(pipefd[0]);
+
+      srand(time(NULL));
+      int _pickedIdx = ( rand() % player_num ) + 1;  
+      int _ids[FOUR_PLAYER];
+
+      for(int i = 0; i < FOUR_PLAYER; i++)
+         _ids[i] = 0;
+      for(int i = 0; i < FOUR_PLAYER; i++) {
+         while( _p[ _pickedIdx ] == 0)
+            _pickedIdx = ( rand() % player_num); 
+
+         _ids[ i ] = _pickedIdx;
+         _p[ _pickedIdx ] = 0;
+      }
+
+      //  for(int i = 0; i < FOUR_PLAYER; i++)
+      //   	fprintf(stdout, "%d ", _ids[i]);
+      // fprintf(stdout, "\n");
+
+      char message[20]; // dummy 
+      memset(message, 0, sizeof message);
+
+      for(int i = 0; i < FOUR_PLAYER; i++) {
+         int aInt = _ids[ i ];
+         char str[2];
+         memset(str, 0, sizeof str);
+
+         myitoa(aInt, str);
+
+         strcat(message,  str );
+         strcat(message, " ");     
+      }
+      fflush(stdout);
+      fprintf(stdout, "%s\n", message);
+
+      //close(pipefd[0]);
       write(pipefd[1], message, sizeof(message));
       //close(pipefd[1]);
-      wait(NULL);
-
-      return;
+      forkJudge(--i, pipefd, _p);
    }
+}
+
+void parse4players(char* _str, int _p[]) { //_p denotes available players
+
+
 }
 
 int main(int argc, char *argv[]) {
 
-// big_judge.c (./big_judge [judge_num] [player_num]) 
+   // big_judge.c (./big_judge [judge_num] [player_num]) 
 // (1<=judge_num<=12)
 // (4<=player_num<=20)
 // $ ./big_judge 1 4 
@@ -76,13 +121,23 @@ int main(int argc, char *argv[]) {
       	exit(EXIT_FAILURE);
 	}
 
-	int judge_num = atoi(argv[1]);
-	int player_num = atoi(argv[2]);
+	judge_num = atoi(argv[1]);
+	player_num = atoi(argv[2]);
+
 	if(judge_num < 1 || judge_num > 12 || player_num < 4 || player_num > 20) {
 		fprintf(stderr, "ERROR: invalid num\n");
       	exit(EXIT_FAILURE);		
 	}
-
+	if(player_num / judge_num != 4) {
+		fprintf(stderr, "ERROR: simplified version invalid\n");
+      	exit(EXIT_FAILURE);		
+	}
+	int _p[ player_num ]; //_p denotes available players
+	int scores[ player_num ];
+	for(int i = 0; i < player_num; i++) {
+		_p[i] = 1; // 1 denotes available, i.e. waiting for joining a game
+		scores[i] = 0;
+	}
 // At first, the big_judge should fork and execute the number of judges
 // big_judge must build pipes to communicate with each of them
 // with IDs from 1 to judge_num.
@@ -91,8 +146,19 @@ int main(int argc, char *argv[]) {
       perror("pipe");
       exit(EXIT_FAILURE);
    }
-   forkJudge(judge_num, pipefd);
+   int tmp_num = judge_num;
+   forkJudge(tmp_num, pipefd, _p);
 
+// If there is no available judge, 
+// waits until one of the judges returns the competition result
+// e.g. Judge 1 writes the result to standard output (sending to big_judge): 
+// format: [p1_id] [p1_rank]
+// 1 4 
+// 2 2 
+// 3 1 
+// 4 3 
+// assign another competition to that judge
+// make full use of available judges but not let any available judge idle.
 
 	return 0;
 }
