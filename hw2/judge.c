@@ -62,10 +62,10 @@ void forkPlayer(int player_index, int myfifo, int rand_key) {
       char pIdx[1];
       pIdx[0] = 'A' + player_index - 1;
 
-      char myjudge_id[4];
+      char myjudge_id[3];
       memset(myjudge_id, 0, sizeof(myjudge_id));
       myitoa(judge_id, myjudge_id);
-      char random_key[7];
+      char random_key[6];
       memset(random_key, 0, sizeof(random_key));
       myitoa(rand_key, random_key);
 
