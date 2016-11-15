@@ -285,13 +285,13 @@ int main(int argc, char *argv[]) {
    memset(result, 0, sizeof(result));
    build_result(picked, result);
 
-   // for(int i = 0; i < FOUR_PLAYER; i ++) {
-   //    mkfifo(myStrfifo[i], 0666);
-   //    myfifo_fd[i] = open(myStrfifo[i], O_WRONLY);
+   for(int i = 0; i < FOUR_PLAYER; i ++) {
+      // mkfifo(myStrfifo[i], 0666);
+      myfifo_fd[i] = open(myStrfifo[i], O_WRONLY);
 
-   //    sleep(1);
-   //    write(myfifo_fd[i], result, sizeof(result));
-   // }
+      // sleep(1);
+      write(myfifo_fd[i], result, sizeof(result));
+   }
 
    for(int i = 1; i < MAX_ROUND; i++) {
 // In each round, 
@@ -302,6 +302,7 @@ int main(int argc, char *argv[]) {
 // help them decide what number to tell in the next round. (AH: IGNORED)
 // Round 2, judge 1 sends player 1 through judge1_A.FIFO:
 // 3 5 5 1 
+      
 
    }
 

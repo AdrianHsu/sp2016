@@ -168,12 +168,13 @@ int main(int argc, char *argv[]) {
 // The player should open a FIFO named judge[judge_id]_[player_index].FIFO, 
 // which should be already created by the judge. 
 
-   // char myStrfifo[MESSAGE_MAX];
-   // memset(myStrfifo, 0, sizeof(myStrfifo));
-   // playerfifo(myStrfifo, judge_id, player_index);
-   // mkfifo(myStrfifo, 0666);
-   // int myfifo_fd = open(myStrfifo, O_WRONLY);
-
+   char myStrfifo[MESSAGE_MAX];
+   memset(myStrfifo, 0, sizeof(myStrfifo));
+   playerfifo(myStrfifo, judge_id, player_index);
+   mkfifo(myStrfifo, 0666);
+   int myfifo_fd = open(myStrfifo, O_RDONLY);
+   char buf[MESSAGE_MAX];
+   read(myfifo_fd, buf, sizeof(buf));
 
 // Round 1, player 1 sends judge 1 through judge1.FIFO: 
 // A 9 3 
