@@ -16,6 +16,7 @@ int random_key;
 #define MESSAGE_MAX 20
 #define CHOICE_RAND_MAX 3
 #define MYRAND_MAX 65536
+#define MAX_ROUND 20
 
 
 void myswap(char* s0, char* s1) {
@@ -151,7 +152,8 @@ int main(int argc, char *argv[]) {
    char choice[2];
    memset(choice, 0, sizeof(choice));
    makeChoice(choice);
-
+// Round 1, player 1 sends judge 1 through judge1.FIFO: 
+// A 9 3 
 // In the first round, the player should first send its response to judge
 // format: [player_index] [random_key] [number_choose] 
    char message[MESSAGE_MAX];
@@ -167,22 +169,48 @@ int main(int argc, char *argv[]) {
 
 // The player should open a FIFO named judge[judge_id]_[player_index].FIFO, 
 // which should be already created by the judge. 
-
+// The player reads messages from judge[judge_id]_[player_index].FIFO, 
+// such as judge1_A.FIFO,
+// and writes responses to judge[judge_id].FIFO, such as judge1.FIFO.
    char myStrfifo[MESSAGE_MAX];
    memset(myStrfifo, 0, sizeof(myStrfifo));
    playerfifo(myStrfifo, judge_id, player_index);
    mkfifo(myStrfifo, 0666);
    int myfifo_fd = open(myStrfifo, O_RDONLY);
-   char buf[MESSAGE_MAX];
-   read(myfifo_fd, buf, sizeof(buf));
-
+   char result[MESSAGE_MAX];
+   memset(result, 0, sizeof(result));
+   read(myfifo_fd, result, sizeof(result));
 // Round 1, player 1 sends judge 1 through judge1.FIFO: 
 // A 9 3 
+// In the first round, the player should first send its response to judge
+// format: [player_index] [random_key] [number_choose] 
+// char message[MESSAGE_MAX];
 
-// The player reads messages from judge[judge_id]_[player_index].FIFO, 
-// such as judge1_A.FIFO, 
 
-// and writes responses to judge[judge_id].FIFO, such as judge1.FIFO.
+   for(int t = 1; t < MAX_ROUND; t++) {
+      memset(my1stfifo, 0, sizeof(my1stfifo));
+
+      memset(choice, 0, sizeof(choice));
+      makeChoice(choice);
+
+      memset(message, 0, sizeof(message));
+      strcat(message, ch_p_index);
+      strcat(message, " ");
+      strcat(message, argv[2]);
+      strcat(message, " ");
+      strcat(message, choice);
+      sleep(1);
+      write(my1stfifo_fd, message, sizeof(message));
+
+      memset(myStrfifo, 0, sizeof(myStrfifo));
+      memset(result, 0, sizeof(result));
+      read(myfifo_fd, result, sizeof(result));
+
+   }
+
+
+
+
 
    close(my1stfifo_fd);
    unlink(my1stfifo);
