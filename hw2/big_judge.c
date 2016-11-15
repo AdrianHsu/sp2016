@@ -24,7 +24,6 @@ void myitoa (int n,char s[])
       n = -n;
    i = 0;
    int _size = 1;
-
    do {
       s[ i++ ] = n % 10 + '0';
       _size++;
@@ -41,7 +40,50 @@ void myitoa (int n,char s[])
    } else if(_size == 2) {
       // do nothin
    }
-} 
+}
+
+
+
+void parse4players(char message[], int _p[]) { //_p denotes available players
+
+   srand(time(NULL));
+   int _pickedIdx = ( rand() % player_num ) + 1;  
+   int _ids[FOUR_PLAYER];
+
+   // after big_judge executes judges
+   // distribute every 4 players to an available judge via pipe.
+   // There will be C(player_num,4) competitions
+   // players are numbered from 1 to player_num
+   // the message sending to the judges are of the format
+   // [p1_id] [p2_id] [p3_id] [p4_id]
+
+   //  for(int i = 0; i < FOUR_PLAYER; i++)
+   //    fprintf(stdout, "%d ", _ids[i]);
+   // fprintf(stdout, "\n");
+
+   for(int i = 0; i < FOUR_PLAYER; i++)
+      _ids[i] = 0;
+   for(int i = 0; i < FOUR_PLAYER; i++) {
+      while( _p[ _pickedIdx ] == 0)
+         _pickedIdx = ( rand() % player_num); 
+
+      _ids[ i ] = _pickedIdx + 1; // players are numbered from 1 to player_num
+      _p[ _pickedIdx ] = 0;
+   }
+
+
+   for(int i = 0; i < FOUR_PLAYER; i++) {
+      int aInt = _ids[ i ];
+      char str[2];
+      memset(str, 0, sizeof str);
+
+      myitoa(aInt, str);
+
+      strcat(message,  str );
+      if(i != FOUR_PLAYER - 1)
+         strcat(message, " ");     
+   }
+}
 
 void forkJudge(int i, int pipefd[], int _p[]) {
    if(i == 0) return;
@@ -67,48 +109,13 @@ void forkJudge(int i, int pipefd[], int _p[]) {
       //close(pipefd[0]);          /* Close unused read end */
       execl("./judge", &myjudge);
 
+      exit(EXIT_SUCCESS);
    } else { //parent process
-      // after big_judge executes judges
-      // distribute every 4 players to an available judge via pipe.
-      // There will be C(player_num,4) competitions
-      // players are numbered from 1 to player_num
-      // the message sending to the judges are of the format
-      // [p1_id] [p2_id] [p3_id] [p4_id]
-
-
-      srand(time(NULL));
-      int _pickedIdx = ( rand() % player_num ) + 1;  
-      int _ids[FOUR_PLAYER];
-
-      for(int i = 0; i < FOUR_PLAYER; i++)
-         _ids[i] = 0;
-      for(int i = 0; i < FOUR_PLAYER; i++) {
-         while( _p[ _pickedIdx ] == 0)
-            _pickedIdx = ( rand() % player_num); 
-
-         _ids[ i ] = _pickedIdx + 1; // players are numbered from 1 to player_num
-         _p[ _pickedIdx ] = 0;
-      }
-
-       for(int i = 0; i < FOUR_PLAYER; i++)
-        	fprintf(stdout, "%d ", _ids[i]);
-      fprintf(stdout, "\n");
 
       char message[MESSAGE_MAX]; // dummy 
-
       memset(message, 0, sizeof message);
 
-      for(int i = 0; i < FOUR_PLAYER; i++) {
-         int aInt = _ids[ i ];
-         char str[2];
-         memset(str, 0, sizeof str);
-
-         myitoa(aInt, str);
-
-         strcat(message,  str );
-         if(i != FOUR_PLAYER - 1)
-            strcat(message, " ");     
-      }
+      parse4players(message, _p);
       // fflush(stdout);
       // fprintf(stdout, "%s\n", message);
 
@@ -122,12 +129,6 @@ void forkJudge(int i, int pipefd[], int _p[]) {
 
    }
 }
-
-void parse4players(char* _str, int _p[]) { //_p denotes available players
-
-
-}
-
 int main(int argc, char *argv[]) {
 
    // big_judge.c (./big_judge [judge_num] [player_num]) 

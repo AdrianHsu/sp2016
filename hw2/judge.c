@@ -6,7 +6,20 @@
 #include <unistd.h> // for close
 #include <errno.h>
 
+#define FOUR_PLAYER 4
+#define MESSAGE_MAX 20
 
+// "4 13 1 2" -> 4, 13, 1, 2
+void parse4players(char message[], int _ids[]) {
+   
+   int i = 0;
+   char *s = strtok(message, " ");
+   while(s != NULL) {
+      _ids[i] = atoi(s);
+      i++;
+      s = strtok(NULL, " ");
+   }
+}
 
 int main(int argc, char *argv[]) {
 
@@ -28,24 +41,26 @@ int main(int argc, char *argv[]) {
       perror("pipe");
       exit(EXIT_FAILURE);
    }
-   char buf;
 
-   // if( dup2( STDIN_FILENO, pipefd[0] ) < 0 ){
-   //     perror( "dup2(  )" );
-   //     exit(EXIT_FAILURE);
-   // }
-
-   close(pipefd[1]);          /* Close unused write end */
-   char meesage[20];
-   while (read(STDIN_FILENO, &buf, 1) > 0) {
-      write(STDOUT_FILENO, &buf, 1);
+   char message[MESSAGE_MAX];
+   if (read(STDIN_FILENO, message, sizeof message) > 0) {
+      // printf("%s\n", message);
+      // fflush(stdout);
+      //write(STDOUT_FILENO, &buf, 20);
+      // fprintf(stderr, "!!");
    }
-   write(STDOUT_FILENO, "\n", 1);
 
-   close(pipefd[0]);
-
+   int _ids[ FOUR_PLAYER ];
+   for(int i = 0; i < FOUR_PLAYER; i ++)
+      _ids[i] = 0;
+   
+   parse4players(message, _ids);
+   for(int i = 0; i < FOUR_PLAYER; i ++)
+      printf("%d\n", _ids[i]);  
    // The big_judge sends judge 1 
    // (judge 1 reads from standard input): 1 2 3 4 
+
+
 
    // create a FIFO named judge[judge_id].FIFO, such as judge1.FIFO
    // to read responses from the players
