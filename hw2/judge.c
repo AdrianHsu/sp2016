@@ -5,6 +5,8 @@
 #include <fcntl.h> // for open
 #include <unistd.h> // for close
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define FOUR_PLAYER 4
 #define MESSAGE_MAX 20
@@ -21,6 +23,70 @@ void parse4players(char message[], int _ids[]) {
    }
 }
 
+void myitoa (int n,char s[])
+{
+   int i, j, sign;
+   if((sign = n) < 0)
+      n = -n;
+   i = 0;
+   int _size = 1;
+   do {
+      s[ i++ ] = n % 10 + '0';
+      _size++;
+   }
+   while ( (n /= 10) > 0);
+   if(sign < 0)
+      s[ i++ ] = '-';
+   s[ i ] = '\0';
+
+   if(_size == 3) {
+      char tmp = s[0];
+      s[0] = s[1];
+      s[1] = tmp;
+   } else if(_size == 2) {
+      // do nothin
+   }
+}
+void judgefifo(char first_str[], int judge_id) {
+
+   char str1[1];
+   char str2[2];
+   strcat(first_str, "./tmp/judge"); 
+
+   if(judge_id < 10) {
+      str1[0] = judge_id + '0';
+      strcat(first_str, str1); 
+   } else {
+      memset(str2, 0, sizeof(str2));
+      myitoa(judge_id, str2);
+      strcat(first_str, str2); 
+   }
+
+   strcat(first_str, ".FIFO"); 
+   // printf("first_str: %s\n", first_str);
+}
+void playerfifo(char first_str[], int judge_id) {
+
+   char str1[1];
+   char str2[2];
+   strcat(first_str, "./tmp/judge"); 
+
+   if(judge_id < 10) {
+      str1[0] = judge_id + '0';
+      strcat(first_str, str1); 
+   } else {
+      memset(str2, 0, sizeof(str2));
+      myitoa(judge_id, str2);
+      strcat(first_str, str2); 
+   }
+   strcat(first_str, "_");
+   char t[1];
+   t[0] = 'A' + judge_id - 1;
+   strcat(first_str, t);
+   
+   strcat(first_str, ".FIFO"); 
+   // printf("first_str: %s\n", first_str);
+}
 int main(int argc, char *argv[]) {
 
    // judge.c (./judge [judge_id])
@@ -53,20 +119,29 @@ int main(int argc, char *argv[]) {
    int _ids[ FOUR_PLAYER ];
    for(int i = 0; i < FOUR_PLAYER; i ++)
       _ids[i] = 0;
-   
-   parse4players(message, _ids);
-   for(int i = 0; i < FOUR_PLAYER; i ++)
-      printf("%d\n", _ids[i]);  
    // The big_judge sends judge 1 
-   // (judge 1 reads from standard input): 1 2 3 4 
-
-
+   // (judge 1 reads from standard input): 1 2 3 4  
+   parse4players(message, _ids);
+   // for(int i = 0; i < FOUR_PLAYER; i ++)
+   //    printf("%d\n", _ids[i]);  
 
    // create a FIFO named judge[judge_id].FIFO, such as judge1.FIFO
    // to read responses from the players
 
+   char my1stfifo[MESSAGE_MAX];
+   memset(my1stfifo, 0, sizeof(my1stfifo));
+   judgefifo(my1stfifo, judge_id);
+   printf("first_str: %s\n", my1stfifo);
+
    // create four FIFOs named judge[judge_id]_A.FIFO...etc
    // to write messages to the players in the competition
+   
+   char myfifo[FOUR_PLAYER][MESSAGE_MAX];
+   for(int i = 0; i < FOUR_PLAYER; i++) {
+      memset(myfifo[i], 0, sizeof(myfifo[i]));
+      playerfifo(myfifo[i], judge_id);
+      printf("str: %s\n", myfifo[i]);   
+   }
 
    return 0;
 }
