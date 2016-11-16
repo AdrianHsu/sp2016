@@ -151,7 +151,7 @@ void build_result(int picked[], char result []) {
          strcat(result, " ");
    }
 }
-void getrank(char rank[][MESSAGE_MAX], int scores[], int _ids[]) {
+void getrank(char rank[], int scores[], int _ids[]) {
    
    int index[4];
    int tmp_rank[4];
@@ -204,15 +204,17 @@ void getrank(char rank[][MESSAGE_MAX], int scores[], int _ids[]) {
       char ran[2];
       memset(ind, 0, sizeof(ind));
       memset(ran, 0, sizeof(ran));
-      ind[0] = _ids[i] + '0'm;
+      ind[0] = _ids[i] + '0';
       ran[0] = tmp_rank[i] + '0';
       ind[1] = '\0';
       ran[1] = '\0';
-      strcat(rank[i], ind);
-      strcat(rank[i], " ");
-      strcat(rank[i], ran);
+      strcat(rank, ind);
+      strcat(rank, " ");
+      strcat(rank, ran);
+      strcat(rank, "\n");
       // printf("rank: %s\n", rank[i]);
    }
+   // printf("%s", rank);
 }
 
 void judgefifo(char first_str[]) {
@@ -376,7 +378,7 @@ int main(int argc, char *argv[]) {
    printf("ROUND 1 ends\n");
    for(int i = 0; i < FOUR_PLAYER; i ++) {
       // myfifo_fd[i] = open(myStrfifo[i], O_WRONLY);
-      printf("score for player %d = %d\n", i + 1, scores[i]);
+      // printf("score for player %d = %d\n", i + 1, scores[i]);
    }
 
    for(int t = 2; t <= 3; t++) {
@@ -431,9 +433,9 @@ int main(int argc, char *argv[]) {
          }
 
          printf("ROUND %d ends\n", t);
-         for(int i = 0; i < FOUR_PLAYER; i ++) {
-            printf("score for player %d = %d, whose _ids=%d\n", i + 1, scores[i], _ids[i]);
-         }
+         // for(int i = 0; i < FOUR_PLAYER; i ++) {
+         //    printf("score for player %d = %d, whose _ids=%d\n", i + 1, scores[i], _ids[i]);
+         // }
    }
 
 // The judge accumulates each player’s points.
@@ -441,12 +443,24 @@ int main(int argc, char *argv[]) {
 // After 20 rounds, the judge should output to "standard output"
 // [p1_id] [p1_rank]
 // [p2_id] [p2_rank]...etc
-   char rank[FOUR_PLAYER][MESSAGE_MAX]; 
-   for(int i = 0; i < FOUR_PLAYER; i ++)
-      memset(rank[i], 0, sizeof(rank[i]));
+   char rank[MESSAGE_MAX]; 
+   memset(rank, 0, sizeof(rank));
    
    getrank(rank, scores, _ids);
    
+   int pipefd[2] = {0, 0};
+   if (pipe(pipefd) == -1) {
+      perror("pipe");
+      exit(EXIT_FAILURE);
+   }
+
+   if( dup2( pipefd[0], STDIN_FILENO ) < 0 ){
+      perror( "dup2()" );
+      exit(EXIT_FAILURE);
+   }
+   printf("start write\n");
+   write(pipefd[1], rank, sizeof(rank));
+   printf("done write\n");
 
    for(int i = 0; i < FOUR_PLAYER; i++) {
       close(myfifo_fd[i]);

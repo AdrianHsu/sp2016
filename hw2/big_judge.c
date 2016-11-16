@@ -99,13 +99,6 @@ void forkJudge(int i, int pipefd[], int _p[]) {
       // The big_judge sends judge 1 
       // (judge 1 reads from standard input): 1 2 3 4 
       char myjudge = i + '0';
-
-      //close(pipefd[1]);            /* Close unused write end */
-      if( dup2( pipefd[0], STDIN_FILENO ) < 0 ){
-         perror( "dup2()" );
-         exit(EXIT_FAILURE);
-      }
-      //close(pipefd[0]);          /* Close unused read end */
       execl("./judge", &myjudge);
 
       // exit(EXIT_SUCCESS);
@@ -123,9 +116,7 @@ void forkJudge(int i, int pipefd[], int _p[]) {
       //close(pipefd[1]);
       forkJudge(--i, pipefd, _p);
       // int rc = kill (cpid, SIGKILL);
-
       wait(NULL);
-
    }
 }
 int main(int argc, char *argv[]) {
@@ -161,12 +152,17 @@ int main(int argc, char *argv[]) {
 // At first, the big_judge should fork and execute the number of judges
 // big_judge must build pipes to communicate with each of them
 // with IDs from 1 to judge_num.
-   int pipefd[2];
+   int pipefd[2] = {0, 0};
    if (pipe(pipefd) == -1) {
       perror("pipe");
       exit(EXIT_FAILURE);
    }
    int tmp_num = judge_num;
+   if( dup2( pipefd[0], STDIN_FILENO ) < 0 ){
+      perror( "dup2()" );
+      exit(EXIT_FAILURE);
+   }
+
    forkJudge(tmp_num, pipefd, _p);
 
 
@@ -180,7 +176,16 @@ int main(int argc, char *argv[]) {
 // 4 3 
 // assign another competition to that judge
 // make full use of available judges but not let any available judge idle.
+   // char rank[FOUmR_PLAYER][MESSAGE_MAX]; 
+   // for(int i = 0; i < FOUR_PLAYER; i ++)
+   //    memset(rank[i], 0, sizeof(rank[i]));
+   char tmp[1024];
+   memset(tmp, 0, sizeof(tmp));
+   printf("wtf\n");
 
+   read(STDIN_FILENO, tmp, sizeof(tmp));
+   printf("tmp: %s\n", tmp);
+   fflush(stdout);
 	return 0;
 }
 
