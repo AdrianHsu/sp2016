@@ -186,10 +186,8 @@ int main(int argc, char *argv[]) {
 // format: [player_index] [random_key] [number_choose] 
 // char message[MESSAGE_MAX];
 
-
-   for(int t = 1; t < MAX_ROUND; t++) {
+   for(int t = 2; t <= MAX_ROUND; t++) {
       memset(my1stfifo, 0, sizeof(my1stfifo));
-
       memset(choice, 0, sizeof(choice));
       makeChoice(choice);
 
@@ -199,7 +197,6 @@ int main(int argc, char *argv[]) {
       strcat(message, argv[2]);
       strcat(message, " ");
       strcat(message, choice);
-      sleep(1);
       write(my1stfifo_fd, message, sizeof(message));
 
       memset(myStrfifo, 0, sizeof(myStrfifo));
