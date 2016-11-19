@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h> // for open
-#include <unistd.h> // for close
+#include <fcntl.h> // for open()
+#include <unistd.h> // for close()
 #include <time.h>    // time()
 #include <sys/types.h>
 #include <signal.h>
@@ -36,29 +36,25 @@ void myitoa (int n,char s[])
    if(sign < 0)
       s[ i++ ] = '-';
    s[ i ] = '\0';
-
-   if(_size == 3) { //e.g. 12
+   if(_size == 6) { //e.g.12345
+      myswap(&s[0], &s[4]);
+      myswap(&s[1], &s[3]);
+   } else if(_size == 5) { //e.g. 1234
+      myswap(&s[0], &s[3]);
+      myswap(&s[1], &s[2]);
+   } else if (_size == 4) { //e.g. 123
+      myswap(&s[0], &s[2]);
+   } else if(_size == 3) { //e.g. 12
       myswap(&s[0], &s[1]);
    } else if(_size == 2) {
       // do nothin
    }
 }
-void parse4players(char message[], int _p[]) { //_p denotes available players
+void parse4players(char message[], int _p[]) {
 
    srand(time(NULL));
-   int _pickedIdx = ( rand() % player_num ) + 1;  
+   int _pickedIdx = ( rand() % player_num );
    int _ids[FOUR_PLAYER];
-
-   // after big_judge executes judges
-   // distribute every 4 players to an available judge via pipe.
-   // There will be C(player_num,4) competitions
-   // players are numbered from 1 to player_num
-   // the message sending to the judges are of the format
-   // [p1_id] [p2_id] [p3_id] [p4_id]
-
-   //  for(int i = 0; i < FOUR_PLAYER; i++)
-   //    fprintf(stdout, "%d ", _ids[i]);
-   // fprintf(stdout, "\n");
 
    for(int i = 0; i < FOUR_PLAYER; i++)
       _ids[i] = 0;
@@ -66,7 +62,7 @@ void parse4players(char message[], int _p[]) { //_p denotes available players
       while( _p[ _pickedIdx ] == 0)
          _pickedIdx = ( rand() % player_num); 
 
-      _ids[ i ] = _pickedIdx + 1; // players are numbered from 1 to player_num
+      _ids[ i ] = _pickedIdx + 1;
       _p[ _pickedIdx ] = 0;
    }
 
@@ -77,7 +73,6 @@ void parse4players(char message[], int _p[]) { //_p denotes available players
       memset(str, 0, sizeof str);
 
       myitoa(aInt, str);
-
       strcat(message,  str );
       if(i != FOUR_PLAYER - 1)
          strcat(message, " ");     
@@ -87,45 +82,35 @@ void parse4players(char message[], int _p[]) { //_p denotes available players
 void forkJudge(int i, int pipefd[], int _p[]) {
    if(i == 0) return;
    pid_t cpid = fork();
-
+   int status;
    if (cpid == -1) {
       perror("fork");
       exit(EXIT_FAILURE);
 
-   } else if (cpid == 0) { //child process
+   } else if (cpid == 0) { // child process
 
-      // The big judge will fork and execute:
-      // $ ./judge 1 
-      // The big_judge sends judge 1 
-      // (judge 1 reads from standard input): 1 2 3 4 
-      char myjudge = i + '0';
-      execl("./judge", &myjudge);
+      char myjudge_id[3];
+      memset(myjudge_id, 0, sizeof(myjudge_id));
+      myitoa(i, myjudge_id);
+      char w_pfd[3];
+      memset(w_pfd, 0, sizeof(w_pfd));
+      myitoa(pipefd[1], w_pfd);
 
-      // exit(EXIT_SUCCESS);
-   } else { //parent process
+      execl("./judge", myjudge_id, w_pfd, NULL);
 
-      char message[MESSAGE_MAX]; // dummy 
+      _exit(EXIT_SUCCESS);
+   } else { // parent process
+
+      char message[MESSAGE_MAX];
       memset(message, 0, sizeof message);
 
       parse4players(message, _p);
-      // fflush(stdout);
-      // fprintf(stdout, "%s\n", message);
-
-      //close(pipefd[0]);
       write(pipefd[1], message, sizeof(message));
-      //close(pipefd[1]);
       forkJudge(--i, pipefd, _p);
-      // int rc = kill (cpid, SIGKILL);
-      wait(NULL);
+      wait(&status);
    }
 }
 int main(int argc, char *argv[]) {
-
-   // big_judge.c (./big_judge [judge_num] [player_num]) 
-// (1<=judge_num<=12)
-// (4<=player_num<=20)
-// $ ./big_judge 1 4 
-// This will run 1 judge and 4 players. 
 	
 	if(argc != 3) {
 		fprintf(stderr, "USAGE: ./big_judge [judge_num] [player_num]\n");
@@ -149,9 +134,6 @@ int main(int argc, char *argv[]) {
 		_p[i] = 1; // 1 denotes available, i.e. waiting for joining a game
 		scores[i] = 0;
 	}
-// At first, the big_judge should fork and execute the number of judges
-// big_judge must build pipes to communicate with each of them
-// with IDs from 1 to judge_num.
    int pipefd[2] = {0, 0};
    if (pipe(pipefd) == -1) {
       perror("pipe");
@@ -165,55 +147,10 @@ int main(int argc, char *argv[]) {
 
    forkJudge(tmp_num, pipefd, _p);
 
-
-// If there is no available judge, 
-// waits until one of the judges returns the competition result
-// e.g. Judge 1 writes the result to standard output (sending to big_judge): 
-// format: [p1_id] [p1_rank]
-// 1 4 
-// 2 2 
-// 3 1 
-// 4 3 
-// assign another competition to that judge
-// make full use of available judges but not let any available judge idle.
-   // char rank[FOUmR_PLAYER][MESSAGE_MAX]; 
-   // for(int i = 0; i < FOUR_PLAYER; i ++)
-   //    memset(rank[i], 0, sizeof(rank[i]));
-   char tmp[1024];
-   memset(tmp, 0, sizeof(tmp));
-   printf("wtf\n");
-
-   read(STDIN_FILENO, tmp, sizeof(tmp));
-   printf("tmp: %s\n", tmp);
+   char res[MESSAGE_MAX];
+   memset(res, 0, sizeof(res));
+   read(pipefd[0], res, sizeof(res)); //pipefd[0] is STDIN
    fflush(stdout);
+
 	return 0;
 }
-
-// The big_judge has to keep accumulative scores of all players.
-
-// scores of all players are initally set to 0. 
-
-// When the judge returns the result back to the big_judge:
-
-// the result is the rankings of the four players,
-
-// big_judge should add scores to the players’ 
-// accumulative scores according to the rankings of them.
-// the first, second, third, and fourth place gets 3, 2, 1, and 0 
-
-// The big_judge reads the result, and does the calculation
-// The message coming from the judge would be
-// the competition result presided by that judge (from judge.c)
-
-// After all competitions are done:
-// big_judge should send the string “-1 -1 -1 -1\n” to all judges
-
-// indicating that all competitions are done and judges can exit.
-
-// he big_judge outputs all players’ ID sorted by their scores
-
-// from the highest to the lowest, separated by spaces
-
-//  If two players have the same score, output the one with smaller ID first.
-
-// The big_judge outputs the result
