@@ -386,7 +386,7 @@ int main(int argc, char *argv[]) {
    
    getrank(rank, scores, _ids);
 
-   write(STDOUT_FILENO, rank, sizeof(rank));
+   // write(STDOUT_FILENO, rank, sizeof(rank));
    write(w_pfd, rank, sizeof(rank));
 
    for(int i = 0; i < FOUR_PLAYER; i++) {

@@ -50,6 +50,7 @@ void myitoa (int n,char s[])
       // do nothin
    }
 }
+
 void parse4players(char message[], int _p[]) {
 
    srand(time(NULL));
@@ -65,8 +66,6 @@ void parse4players(char message[], int _p[]) {
       _ids[ i ] = _pickedIdx + 1;
       _p[ _pickedIdx ] = 0;
    }
-
-
    for(int i = 0; i < FOUR_PLAYER; i++) {
       int aInt = _ids[ i ];
       char str[3];
@@ -78,7 +77,6 @@ void parse4players(char message[], int _p[]) {
          strcat(message, " ");     
    }
 }
-
 void forkJudge(int i, int pipefd[], int _p[]) {
    if(i == 0) return;
    pid_t cpid = fork();
@@ -120,7 +118,7 @@ int main(int argc, char *argv[]) {
 	judge_num = atoi(argv[1]);
 	player_num = atoi(argv[2]);
 
-	if(judge_num < 1 || judge_num > 12 || player_num < 4 || player_num > 20) {
+   if(judge_num < 1 || judge_num > 12 || player_num < 4 || player_num > 20) {
 		fprintf(stderr, "ERROR: invalid num\n");
       	exit(EXIT_FAILURE);		
 	}
@@ -128,6 +126,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "ERROR: simplified version invalid\n");
       	exit(EXIT_FAILURE);		
 	}
+   
 	int _p[ player_num ]; //_p denotes available players
 	int scores[ player_num ];
 	for(int i = 0; i < player_num; i++) {
@@ -144,12 +143,14 @@ int main(int argc, char *argv[]) {
       perror( "dup2()" );
       exit(EXIT_FAILURE);
    }
-
    forkJudge(tmp_num, pipefd, _p);
 
    char res[MESSAGE_MAX];
    memset(res, 0, sizeof(res));
-   read(pipefd[0], res, sizeof(res)); //pipefd[0] is STDIN
+   while(1) {
+      read(pipefd[0], res, sizeof(res)); //pipefd[0] is STDIN
+      printf("%s", res);
+   }
    fflush(stdout);
 
 	return 0;
