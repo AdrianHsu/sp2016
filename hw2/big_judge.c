@@ -98,7 +98,7 @@ void fourPlayersToIntArray(char message[], int _ids[]) {
       s = strtok(NULL, " ");
    }
 }
-void parse4players(char message[], int _p[], char ac[][MESSAGE_MAX]) {
+int parse4players(char message[], int _p[], char ac[][MESSAGE_MAX]) {
 
    srand(time(NULL));
    while(1) {
@@ -117,7 +117,7 @@ void parse4players(char message[], int _p[], char ac[][MESSAGE_MAX]) {
          for(int i = 0; i < FOUR_PLAYER; i++)
             _p[ arr[i] - 1 ] = 0;
          memset(ac[ r ], 0, sizeof(ac[ r ]));
-         break;
+         return r;
       } else continue;
    }
 }
@@ -146,10 +146,18 @@ void forkJudge(int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX]) {
       char message[MESSAGE_MAX];
       memset(message, 0, sizeof message);
 
-      parse4players(message, _p, ac);
+      int r = parse4players(message, _p, ac);
       write(pipefd[1], message, sizeof(message));
       forkJudge(--i, pipefd, _p, ac);
       wait(&status);
+
+      int arr[4] = {0};
+      fourPlayersToIntArray(message, arr);
+      memset(message, 0, sizeof(message));
+
+      for(int i = 0; i < FOUR_PLAYER; i++)
+         _p[ arr[i] - 1 ] = 1;
+      memset(ac[ r ], 0, sizeof(ac[ r ]));
    }
 }
 int main(int argc, char *argv[]) {
