@@ -15,7 +15,9 @@
 
 int judge_num;
 int player_num;
+int combine = 0;
 int initCombi = 0;
+int currentCombi = 0;
 
 void combinationUtil(int arr[], int data[], int start, int end,
       int index, int r, char ac[][MESSAGE_MAX]) {
@@ -98,12 +100,11 @@ void fourPlayersToIntArray(char message[], int _ids[]) {
       s = strtok(NULL, " ");
    }
 }
-int parse4players(char message[], int _p[], char ac[][MESSAGE_MAX]) {
+int parse4players(char message[], int _p[], char ac[][MESSAGE_MAX], int isDone[]) {
 
-   srand(time(NULL));
    while(1) {
-      int r = rand() % initCombi; // r == 0 means [1, 2, 3, 4]
-      if(ac[ r ] == 0) continue;
+      int r = rand() % combine; // r == 0 means [1, 2, 3, 4]
+      if(ac[ r ] == 0 || isDone[ r ]) continue;
 
       char tmp [MESSAGE_MAX];
       memset(tmp, 0, sizeof(tmp));
@@ -118,10 +119,13 @@ int parse4players(char message[], int _p[], char ac[][MESSAGE_MAX]) {
             _p[ arr[i] - 1 ] = 0;
          memset(ac[ r ], 0, sizeof(ac[ r ]));
          return r;
-      } else continue;
+      } else {
+         isDone[ r ] = 1;
+         continue;
+      }
    }
 }
-void forkJudge(int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX]) {
+void forkJudge(int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX], int isDone[]) {
    if(i == 0) return;
    pid_t cpid = fork();
    int status;
@@ -146,10 +150,12 @@ void forkJudge(int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX]) {
       char message[MESSAGE_MAX];
       memset(message, 0, sizeof message);
 
-      int r = parse4players(message, _p, ac);
+      int r = parse4players(message, _p, ac, isDone);
       write(pipefd[1], message, sizeof(message));
-      forkJudge(--i, pipefd, _p, ac);
+      forkJudge(--i, pipefd, _p, ac, isDone);
+      
       wait(&status);
+      currentCombi++;
 
       int arr[4] = {0};
       fourPlayersToIntArray(message, arr);
@@ -166,6 +172,7 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "USAGE: ./big_judge [judge_num] [player_num]\n");
       exit(EXIT_FAILURE);
    }
+   srand(time(NULL));
 
    judge_num = atoi(argv[1]);
    player_num = atoi(argv[2]);
@@ -184,8 +191,12 @@ int main(int argc, char *argv[]) {
       arr[i] = i + 1;
    int r = FOUR_PLAYER;
    int n = sizeof(arr)/sizeof(arr[0]);
-   int combine = ( (player_num) * (player_num - 1) * (player_num - 2) * (player_num -3) ) / 24;
+   combine = ( (player_num) * (player_num - 1) * (player_num - 2) * (player_num - 3 ) ) / 24;
    char all_combine[combine][MESSAGE_MAX];
+   int isDone[combine];
+   for(int i = 0; i < combine; i++)
+      isDone[ i ] = 0;
+
    for(int i = 0; i < combine; i++)
       memset(all_combine[i], 0, sizeof(all_combine[i]));
    setCombination(arr, n, r, all_combine);
@@ -208,14 +219,15 @@ int main(int argc, char *argv[]) {
       perror( "dup2()" );
       exit(EXIT_FAILURE);
    }
-   forkJudge(tmp_num, pipefd, _p, all_combine);
-
+   forkJudge(tmp_num, pipefd, _p, all_combine, isDone);
+   
+   printf("should not go here\n");
    char res[MESSAGE_MAX];
    memset(res, 0, sizeof(res));
-   while(1) {
-      read(pipefd[0], res, sizeof(res)); //pipefd[0] is STDIN
-      printf("%s", res);
-   }
+   // while(1) {
+   //    read(pipefd[0], res, sizeof(res)); //pipefd[0] is STDIN
+   //    printf("%s", res);
+   // }
    fflush(stdout);
 
    return 0;

@@ -78,7 +78,7 @@ void forkPlayer(int player_index, int rand_key) {
 }
 
 // "4 13 1 2" -> 4, 13, 1, 2
-void fourPlayersToIntArray(char message[], int _ids[]) {
+void parse4players(char message[], int _ids[]) {
    
    int i = 0;
    char *s = strtok(message, " ");
@@ -256,12 +256,14 @@ int main(int argc, char *argv[]) {
 
    char message[MESSAGE_MAX];
    read(STDIN_FILENO, message, sizeof(message));
-   printf("%s\n", message);
+   printf("mes: %s\n", message);
+   fflush(stdout);
+
    int _ids[ FOUR_PLAYER ];
    for(int i = 0; i < FOUR_PLAYER; i ++)
       _ids[i] = 0;
    
-   fourPlayersToIntArray(message, _ids);
+   parse4players(message, _ids);
 
    int pid = getpid(); // get it as per your OS
    struct timeval t;
@@ -386,7 +388,7 @@ int main(int argc, char *argv[]) {
    
    getrank(rank, scores, _ids);
 
-   // write(STDOUT_FILENO, rank, sizeof(rank));
+   write(STDOUT_FILENO, rank, sizeof(rank));
    write(w_pfd, rank, sizeof(rank));
 
    for(int i = 0; i < FOUR_PLAYER; i++) {
