@@ -78,7 +78,7 @@ void forkPlayer(int player_index, int rand_key) {
 }
 
 // "4 13 1 2" -> 4, 13, 1, 2
-void parse4players(char message[], int _ids[]) {
+void fourPlayersToIntArray(char message[], int _ids[]) {
    
    int i = 0;
    char *s = strtok(message, " ");
@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
    for(int i = 0; i < FOUR_PLAYER; i ++)
       _ids[i] = 0;
    
-   parse4players(message, _ids);
+   fourPlayersToIntArray(message, _ids);
 
    int pid = getpid(); // get it as per your OS
    struct timeval t;
