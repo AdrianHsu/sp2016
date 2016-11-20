@@ -129,16 +129,18 @@ int parse4players(char message[], int _p[], char ac[][MESSAGE_MAX]) {
    }
 }
 void accuScore(char res[], int t[]) {
-   char *s = strtok(res, " \n");
+   char *s = strtok(res, " ");
    int i = 0;
    int j = 0;
    int first = 1;
    while(s != NULL) {
       i = atoi(s);
-      s = strtok(NULL, " \n");
+      s = strtok(NULL, "\n");
+      if(s == NULL)
+         break;
       j = atoi(s);
       t[i - 1] += (4 - j);
-      s = strtok(NULL, " \n");
+      s = strtok(NULL, " ");
    }
 }
 void forkJudge(pid_t cpid, int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX], int t[]) {
@@ -246,12 +248,12 @@ int main(int argc, char *argv[]) {
    for(int i = 1; i <= tmp_num; i++) {
       pid_t cpid = fork();
       forkJudge(cpid, i, pipefd, _p, all_combine, totalScore);
-      if(currentCombi < initCombi) {
-         if(tmp_num == 1) {
-            i--;
-            continue;
-         }
-         else i = 1;
+      if(currentCombi == initCombi)
+         break;
+      if(i == tmp_num) {
+         if(currentCombi < initCombi)
+            i = 0;
+         else break;
       }
    }
 
