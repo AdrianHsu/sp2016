@@ -16,7 +16,7 @@ int random_key;
 #define MESSAGE_MAX 20
 #define CHOICE_RAND_MAX 3
 #define MYRAND_MAX 65536
-#define MAX_ROUND 20
+#define MAX_ROUND 3
 
 
 void myswap(char* s0, char* s1) {
@@ -148,13 +148,14 @@ int main(int argc, char *argv[]) {
    strcat(message, argv[2]);
    strcat(message, " ");
    strcat(message, choice);
+
    sleep(1);
-   write(my1stfifo_fd, message, sizeof(message));
 
    char myStrfifo[MESSAGE_MAX];
    memset(myStrfifo, 0, sizeof(myStrfifo));
    playerfifo(myStrfifo, judge_id, player_index);
-   mkfifo(myStrfifo, 0666);
+   mkfifo(myStrfifo, 0666); //bug fixed
+   write(my1stfifo_fd, message, sizeof(message));
    int myfifo_fd = open(myStrfifo, O_RDONLY);
    char result[MESSAGE_MAX];
    memset(result, 0, sizeof(result));
@@ -172,11 +173,10 @@ int main(int argc, char *argv[]) {
       strcat(message, " ");
       strcat(message, choice);
       write(my1stfifo_fd, message, sizeof(message));
-
       memset(myStrfifo, 0, sizeof(myStrfifo));
       memset(result, 0, sizeof(result));
       read(myfifo_fd, result, sizeof(result));
-   }
+   } 
    close(my1stfifo_fd);
    unlink(my1stfifo);
 

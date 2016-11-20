@@ -15,7 +15,7 @@
 #define FOUR_PLAYER 4
 #define MESSAGE_MAX 20
 #define MYRAND_MAX 65536
-#define MAX_ROUND 20
+#define MAX_ROUND 3
 
 int judge_id;
 void myswap(char* s0, char* s1) {
@@ -256,8 +256,7 @@ int main(int argc, char *argv[]) {
 
    char message[MESSAGE_MAX];
    read(STDIN_FILENO, message, sizeof(message));
-   printf("mes: %s\n", message);
-   fflush(stdout);
+   // printf("mes: %s\n", message);
 
    int _ids[ FOUR_PLAYER ];
    for(int i = 0; i < FOUR_PLAYER; i ++)
@@ -335,9 +334,9 @@ int main(int argc, char *argv[]) {
       myfifo_fd[i] = open(myStrfifo[i], O_WRONLY);
       write(myfifo_fd[i], result, sizeof(result));
    }
-   printf("ROUND 1 ends\n");
+   // printf("ROUND 1 ends\n");
 
-   for(int t = 2; t <= 3; t++) {
+   for(int t = 2; t <= MAX_ROUND; t++) {
 
       for(int i = 0; i < FOUR_PLAYER; i++)
          memset(mes[i], 0, sizeof(mes[i]));
@@ -378,10 +377,11 @@ int main(int argc, char *argv[]) {
          memset(result, 0, sizeof(result));
          build_result(picked, result);
 
-         for(int i = 0; i < FOUR_PLAYER; i ++)
+         for(int i = 0; i < FOUR_PLAYER; i ++) {
             write(myfifo_fd[i], result, sizeof(result));
+         }
 
-         printf("ROUND %d ends\n", t);
+         // printf("ROUND %d ends\n", t);
    }
    char rank[MESSAGE_MAX]; 
    memset(rank, 0, sizeof(rank));

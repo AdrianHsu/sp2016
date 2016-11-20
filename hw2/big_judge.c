@@ -100,7 +100,10 @@ void fourPlayersToIntArray(char message[], int _ids[]) {
       s = strtok(NULL, " ");
    }
 }
-int parse4players(char message[], int _p[], char ac[][MESSAGE_MAX], int isDone[]) {
+int parse4players(char message[], int _p[], char ac[][MESSAGE_MAX]) {
+   int isDone[combine];
+   for(int i = 0; i < combine; i++)
+      isDone[ i ] = 0;
 
    while(1) {
       int r = rand() % combine; // r == 0 means [1, 2, 3, 4]
@@ -125,7 +128,7 @@ int parse4players(char message[], int _p[], char ac[][MESSAGE_MAX], int isDone[]
       }
    }
 }
-void forkJudge(int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX], int isDone[]) {
+void forkJudge(int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX]) {
    if(i == 0) return;
    pid_t cpid = fork();
    int status;
@@ -150,20 +153,24 @@ void forkJudge(int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX], int isDone
       char message[MESSAGE_MAX];
       memset(message, 0, sizeof message);
 
-      int r = parse4players(message, _p, ac, isDone);
+      int r = parse4players(message, _p, ac);
       write(pipefd[1], message, sizeof(message));
-      forkJudge(--i, pipefd, _p, ac, isDone);
-      
+      forkJudge(--i, pipefd, _p, ac);
+
       wait(&status);
       currentCombi++;
+
 
       int arr[4] = {0};
       fourPlayersToIntArray(message, arr);
       memset(message, 0, sizeof(message));
 
-      for(int i = 0; i < FOUR_PLAYER; i++)
-         _p[ arr[i] - 1 ] = 1;
+      for(int j = 0; j < FOUR_PLAYER; j++)
+         _p[ arr[j] - 1 ] = 1;
       memset(ac[ r ], 0, sizeof(ac[ r ]));
+      // if(currentCombi < initCombi) {
+      //    forkJudge(++i, pipefd, _p, ac);
+      // }
    }
 }
 int main(int argc, char *argv[]) {
@@ -193,9 +200,6 @@ int main(int argc, char *argv[]) {
    int n = sizeof(arr)/sizeof(arr[0]);
    combine = ( (player_num) * (player_num - 1) * (player_num - 2) * (player_num - 3 ) ) / 24;
    char all_combine[combine][MESSAGE_MAX];
-   int isDone[combine];
-   for(int i = 0; i < combine; i++)
-      isDone[ i ] = 0;
 
    for(int i = 0; i < combine; i++)
       memset(all_combine[i], 0, sizeof(all_combine[i]));
@@ -219,16 +223,14 @@ int main(int argc, char *argv[]) {
       perror( "dup2()" );
       exit(EXIT_FAILURE);
    }
-   forkJudge(tmp_num, pipefd, _p, all_combine, isDone);
+   forkJudge(tmp_num, pipefd, _p, all_combine);
    
-   printf("should not go here\n");
    char res[MESSAGE_MAX];
    memset(res, 0, sizeof(res));
    // while(1) {
-   //    read(pipefd[0], res, sizeof(res)); //pipefd[0] is STDIN
-   //    printf("%s", res);
+      // read(pipefd[0], res, sizeof(res)); //pipefd[0] is STDIN
    // }
-   fflush(stdout);
+
 
    return 0;
 }
