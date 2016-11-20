@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
    strcat(message, " ");
    strcat(message, choice);
 
-   sleep(1);
+   // sleep(1);
 
    char myStrfifo[MESSAGE_MAX];
    memset(myStrfifo, 0, sizeof(myStrfifo));

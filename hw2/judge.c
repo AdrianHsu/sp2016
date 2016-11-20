@@ -256,7 +256,7 @@ int main(int argc, char *argv[]) {
 
    char message[MESSAGE_MAX];
    read(STDIN_FILENO, message, sizeof(message));
-   // printf("mes: %s\n", message);
+   printf("mes: %s\n", message);
 
    int _ids[ FOUR_PLAYER ];
    for(int i = 0; i < FOUR_PLAYER; i ++)
@@ -269,6 +269,7 @@ int main(int argc, char *argv[]) {
    gettimeofday(&t, NULL);
    srand(t.tv_usec * t.tv_sec * pid);
 
+   // 1st round
    char my1stfifo[MESSAGE_MAX];
    memset(my1stfifo, 0, sizeof(my1stfifo));
    judgefifo(my1stfifo);
@@ -336,6 +337,7 @@ int main(int argc, char *argv[]) {
    }
    // printf("ROUND 1 ends\n");
 
+   // 2 to 20 rounds
    for(int t = 2; t <= MAX_ROUND; t++) {
 
       for(int i = 0; i < FOUR_PLAYER; i++)
@@ -388,7 +390,7 @@ int main(int argc, char *argv[]) {
    
    getrank(rank, scores, _ids);
 
-   write(STDOUT_FILENO, rank, sizeof(rank));
+   // write(STDOUT_FILENO, rank, sizeof(rank));
    write(w_pfd, rank, sizeof(rank));
 
    for(int i = 0; i < FOUR_PLAYER; i++) {

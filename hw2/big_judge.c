@@ -101,13 +101,13 @@ void fourPlayersToIntArray(char message[], int _ids[]) {
    }
 }
 int parse4players(char message[], int _p[], char ac[][MESSAGE_MAX]) {
-   int isDone[combine];
-   for(int i = 0; i < combine; i++)
-      isDone[ i ] = 0;
+   // int isDone[combine];
+   // for(int i = 0; i < combine; i++)
+   //    isDone[ i ] = 0;
 
    while(1) {
       int r = rand() % combine; // r == 0 means [1, 2, 3, 4]
-      if(ac[ r ] == 0 || isDone[ r ]) continue;
+      if(ac[ r ] == 0) continue;
 
       char tmp [MESSAGE_MAX];
       memset(tmp, 0, sizeof(tmp));
@@ -123,14 +123,26 @@ int parse4players(char message[], int _p[], char ac[][MESSAGE_MAX]) {
          memset(ac[ r ], 0, sizeof(ac[ r ]));
          return r;
       } else {
-         isDone[ r ] = 1;
+         // isDone[ r ] = 1;
          continue;
       }
    }
 }
-void forkJudge(int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX]) {
+void accuScore(char res[], int t[]) {
+   char *s = strtok(res, " \n");
+   int i = 0;
+   int j = 0;
+   int first = 1;
+   while(s != NULL) {
+      i = atoi(s);
+      s = strtok(NULL, " \n");
+      j = atoi(s);
+      t[i - 1] += (4 - j);
+      s = strtok(NULL, " \n");
+   }
+}
+void forkJudge(pid_t cpid, int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX], int t[]) {
    if(i == 0) return;
-   pid_t cpid = fork();
    int status;
    if (cpid == -1) {
       perror("fork");
@@ -155,11 +167,18 @@ void forkJudge(int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX]) {
 
       int r = parse4players(message, _p, ac);
       write(pipefd[1], message, sizeof(message));
-      forkJudge(--i, pipefd, _p, ac);
+      // forkJudge(--i, pipefd, _p, ac);
 
       wait(&status);
-      currentCombi++;
 
+      char res[MESSAGE_MAX];
+      memset(res, 0, sizeof(res));
+      read(STDIN_FILENO, res, sizeof(res)); //pipefd[0] is STDIN
+      printf("res:\n%s\n", res);
+      accuScore(res, t);
+
+      memset(ac[ r ], 0, sizeof(ac[ r ]));
+      currentCombi++;
 
       int arr[4] = {0};
       fourPlayersToIntArray(message, arr);
@@ -167,10 +186,7 @@ void forkJudge(int i, int pipefd[], int _p[], char ac[][MESSAGE_MAX]) {
 
       for(int j = 0; j < FOUR_PLAYER; j++)
          _p[ arr[j] - 1 ] = 1;
-      memset(ac[ r ], 0, sizeof(ac[ r ]));
-      // if(currentCombi < initCombi) {
-      //    forkJudge(++i, pipefd, _p, ac);
-      // }
+      printf("curr: %d / init: %d\n", currentCombi, initCombi);
    }
 }
 int main(int argc, char *argv[]) {
@@ -188,14 +204,18 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "ERROR: invalid num\n");
       exit(EXIT_FAILURE);		
    }
-   if(player_num / judge_num != FOUR_PLAYER) {
-      fprintf(stderr, "ERROR: simplified version invalid\n");
-      exit(EXIT_FAILURE);		
-   }
+   // if(player_num / judge_num != FOUR_PLAYER) {
+   //    fprintf(stderr, "ERROR: simplified version invalid\n");
+   //    exit(EXIT_FAILURE);		
+   // }
 
    int arr[player_num];
-   for(int i = 0; i < player_num; i++)
+   int totalScore[player_num];
+
+   for(int i = 0; i < player_num; i++) {
       arr[i] = i + 1;
+      totalScore[i] = 0;
+   }
    int r = FOUR_PLAYER;
    int n = sizeof(arr)/sizeof(arr[0]);
    combine = ( (player_num) * (player_num - 1) * (player_num - 2) * (player_num - 3 ) ) / 24;
@@ -223,13 +243,23 @@ int main(int argc, char *argv[]) {
       perror( "dup2()" );
       exit(EXIT_FAILURE);
    }
-   forkJudge(tmp_num, pipefd, _p, all_combine);
-   
-   char res[MESSAGE_MAX];
-   memset(res, 0, sizeof(res));
-   // while(1) {
-      // read(pipefd[0], res, sizeof(res)); //pipefd[0] is STDIN
-   // }
+   for(int i = 1; i <= tmp_num; i++) {
+      pid_t cpid = fork();
+      forkJudge(cpid, i, pipefd, _p, all_combine, totalScore);
+      if(currentCombi < initCombi) {
+         if(tmp_num == 1) {
+            i--;
+            continue;
+         }
+         else i = 1;
+      }
+   }
+
+   // end
+   printf("===result===\n");
+   for(int i = 0; i < player_num; i++) {
+      printf("%d %d\n", i+1, totalScore[i]);
+   }
 
 
    return 0;
