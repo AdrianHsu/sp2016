@@ -255,144 +255,146 @@ int main(int argc, char *argv[]) {
    printf("./judge %d\n", judge_id);
 
    char message[MESSAGE_MAX];
-   read(STDIN_FILENO, message, sizeof(message));
-   printf("mes: %s\n", message);
-
+   memset(message, 0, sizeof(message));
    int _ids[ FOUR_PLAYER ];
-   for(int i = 0; i < FOUR_PLAYER; i ++)
-      _ids[i] = 0;
-   
-   parse4players(message, _ids);
-
    int pid = getpid(); // get it as per your OS
    struct timeval t;
    gettimeofday(&t, NULL);
    srand(t.tv_usec * t.tv_sec * pid);
-
-   // 1st round
    char my1stfifo[MESSAGE_MAX];
-   memset(my1stfifo, 0, sizeof(my1stfifo));
-   judgefifo(my1stfifo);
-   mkfifo(my1stfifo, 0666);
-   for(int i = 0; i < FOUR_PLAYER; i++) { // (i + 1) is player_id
-
-      int rand_key = ( rand() % MYRAND_MAX );
-      forkPlayer(i + 1, rand_key);
-   }
-
    char mes[FOUR_PLAYER][MESSAGE_MAX];
-   for(int i = 0; i < FOUR_PLAYER; i++)
-      memset(mes[i], 0, sizeof(mes[i]));
-
-   int my1stfifo_fd = open(my1stfifo, O_RDONLY);   
+   int my1stfifo_fd;
    char buf[MESSAGE_MAX];
-   memset(buf, 0, sizeof(buf));
-   
-   for(int k = 0; k < FOUR_PLAYER; k++) {
-      read(my1stfifo_fd, buf, sizeof(buf));
-      if(buf[0] == 'A') {
-         strcpy(mes[0], buf);
-         buf[0] = 0;
-      }
-      else if(buf[0] == 'B'){
-         strcpy(mes[1], buf);
-         buf[0] = 0;
-      }
-      else if(buf[0] == 'C'){
-         strcpy(mes[2], buf);
-         buf[0] = 0;
-      }
-      else if(buf[0] == 'D'){
-         strcpy(mes[3], buf);
-         buf[0] = 0;
-      }
-      else {
-         k--;
-         continue;
-      }
-   }
-
    int picked[FOUR_PLAYER];
    int scores[FOUR_PLAYER];
-   for(int i = 0; i < FOUR_PLAYER; i++) {
-      picked[i] = 0;
-      scores[i] = 0;
-   }
-   getScores(picked, scores, mes);
-
    char myStrfifo[FOUR_PLAYER][MESSAGE_MAX];
    int myfifo_fd[FOUR_PLAYER];
-   for(int i = 0; i <  FOUR_PLAYER; i++) {
-      myfifo_fd[i] = 0;
-      memset(myStrfifo[i], 0, sizeof(myStrfifo[i]));
-      playerfifo(myStrfifo[i], i + 1);
-   }
    char result[MESSAGE_MAX];
-   memset(result, 0, sizeof(result));
-   build_result(picked, result);
+   char rank[MESSAGE_MAX]; 
+   while(1) {
+      // 1st round
+      read(STDIN_FILENO, message, sizeof(message));
+      if(strcmp(message, "-1 -1 -1 -1\n") == 0)
+         break;
 
-   for(int i = 0; i < FOUR_PLAYER; i ++) {
-      myfifo_fd[i] = open(myStrfifo[i], O_WRONLY);
-      write(myfifo_fd[i], result, sizeof(result));
-   }
-   // printf("ROUND 1 ends\n");
+      printf("mes: %s\n", message);
+      for(int i = 0; i < FOUR_PLAYER; i ++)
+         _ids[i] = 0;
+      parse4players(message, _ids);
+      memset(my1stfifo, 0, sizeof(my1stfifo));
+      judgefifo(my1stfifo);
+      mkfifo(my1stfifo, 0666);
+      for(int i = 0; i < FOUR_PLAYER; i++) { // (i + 1) is player_id
 
-   // 2 to 20 rounds
-   for(int t = 2; t <= MAX_ROUND; t++) {
+         int rand_key = ( rand() % MYRAND_MAX );
+         forkPlayer(i + 1, rand_key);
+      }
 
       for(int i = 0; i < FOUR_PLAYER; i++)
          memset(mes[i], 0, sizeof(mes[i]));
-         memset(buf, 0, sizeof(buf));
 
-         for(int k = 0; k < FOUR_PLAYER; k++) {
-            read(my1stfifo_fd, buf, sizeof(buf));
-            if(buf[0] == 'A') {
-               strcpy(mes[0], buf);
-               buf[0] = 0;
-            }
-            else if(buf[0] == 'B'){
-               strcpy(mes[1], buf);
-               buf[0] = 0;
-            }
-            else if(buf[0] == 'C'){
-               strcpy(mes[2], buf);
-               buf[0] = 0;
-            }
-            else if(buf[0] == 'D'){
-               strcpy(mes[3], buf);
-               buf[0] = 0;
-            }
-            else {
-               k--;
-               continue;
-            }
+      my1stfifo_fd = open(my1stfifo, O_RDONLY);   
+      memset(buf, 0, sizeof(buf));
+      
+      for(int k = 0; k < FOUR_PLAYER; k++) {
+         read(my1stfifo_fd, buf, sizeof(buf));
+         if(buf[0] == 'A') {
+            strcpy(mes[0], buf);
+            buf[0] = 0;
          }
-         for(int i = 0; i < FOUR_PLAYER; i++) {
-            picked[i] = 0;
+         else if(buf[0] == 'B'){
+            strcpy(mes[1], buf);
+            buf[0] = 0;
          }
-         getScores(picked, scores, mes);
+         else if(buf[0] == 'C'){
+            strcpy(mes[2], buf);
+            buf[0] = 0;
+         }
+         else if(buf[0] == 'D'){
+            strcpy(mes[3], buf);
+            buf[0] = 0;
+         }
+         else {
+            k--;
+            continue;
+         }
+      }
 
-         for(int i = 0; i <  FOUR_PLAYER; i++) {
-            memset(myStrfifo[i], 0, sizeof(myStrfifo[i]));
-            playerfifo(myStrfifo[i], i + 1);
-         }
-         memset(result, 0, sizeof(result));
-         build_result(picked, result);
+      for(int i = 0; i < FOUR_PLAYER; i++) {
+         picked[i] = 0;
+         scores[i] = 0;
+      }
+      getScores(picked, scores, mes);
 
-         for(int i = 0; i < FOUR_PLAYER; i ++) {
-            write(myfifo_fd[i], result, sizeof(result));
-         }
+      for(int i = 0; i <  FOUR_PLAYER; i++) {
+         myfifo_fd[i] = 0;
+         memset(myStrfifo[i], 0, sizeof(myStrfifo[i]));
+         playerfifo(myStrfifo[i], i + 1);
+      }
+      memset(result, 0, sizeof(result));
+      build_result(picked, result);
 
-         // printf("ROUND %d ends\n", t);
+      for(int i = 0; i < FOUR_PLAYER; i ++) {
+         myfifo_fd[i] = open(myStrfifo[i], O_WRONLY);
+         write(myfifo_fd[i], result, sizeof(result));
+      }
+      // printf("ROUND 1 ends\n");
+
+      // 2 to 20 rounds
+      for(int t = 2; t <= MAX_ROUND; t++) {
+
+         for(int i = 0; i < FOUR_PLAYER; i++)
+            memset(mes[i], 0, sizeof(mes[i]));
+            memset(buf, 0, sizeof(buf));
+
+            for(int k = 0; k < FOUR_PLAYER; k++) {
+               read(my1stfifo_fd, buf, sizeof(buf));
+               if(buf[0] == 'A') {
+                  strcpy(mes[0], buf);
+                  buf[0] = 0;
+               }
+               else if(buf[0] == 'B'){
+                  strcpy(mes[1], buf);
+                  buf[0] = 0;
+               }
+               else if(buf[0] == 'C'){
+                  strcpy(mes[2], buf);
+                  buf[0] = 0;
+               }
+               else if(buf[0] == 'D'){
+                  strcpy(mes[3], buf);
+                  buf[0] = 0;
+               }
+               else {
+                  k--;
+                  continue;
+               }
+            }
+            for(int i = 0; i < FOUR_PLAYER; i++) {
+               picked[i] = 0;
+            }
+            getScores(picked, scores, mes);
+
+            for(int i = 0; i <  FOUR_PLAYER; i++) {
+               memset(myStrfifo[i], 0, sizeof(myStrfifo[i]));
+               playerfifo(myStrfifo[i], i + 1);
+            }
+            memset(result, 0, sizeof(result));
+            build_result(picked, result);
+
+            for(int i = 0; i < FOUR_PLAYER; i ++) {
+               write(myfifo_fd[i], result, sizeof(result));
+            }
+
+            // printf("ROUND %d ends\n", t);
+      }
+      memset(rank, 0, sizeof(rank));
+      
+      getrank(rank, scores, _ids);
+      // write(STDOUT_FILENO, rank, sizeof(rank));
+      write(w_pfd, rank, sizeof(rank));
+      sleep(1);
    }
-   char rank[MESSAGE_MAX]; 
-   memset(rank, 0, sizeof(rank));
-   
-   getrank(rank, scores, _ids);
-
-   // write(STDOUT_FILENO, rank, sizeof(rank));
-   write(w_pfd, rank, sizeof(rank));
-
    for(int i = 0; i < FOUR_PLAYER; i++) {
       close(myfifo_fd[i]);
       unlink(myStrfifo[i]);
